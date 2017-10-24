@@ -17,7 +17,7 @@
 
 #define HDF5PP_WORLD_VERSION 0
 #define HDF5PP_MAJOR_VERSION 0
-#define HDF5PP_MINOR_VERSION 1
+#define HDF5PP_MINOR_VERSION 2
 
 #define HDF5PP_VERSION_AT_LEAST(x,y,z) \
   (HDF5PP_WORLD_VERSION>x || (HDF5PP_WORLD_VERSION>=x && \
@@ -39,9 +39,13 @@ class File
 {
 private:
   H5::H5File m_fid;
+  bool       m_autoflush;
 
 public:
-  File(std::string name, std::string mode="w");
+  File(std::string name, std::string mode="w", bool autoflush=true);
+
+  // flush all buffers associated with a file to disk
+  void flush();
 
   // store a double to an opened HDF5 file
   void write(
@@ -91,9 +95,17 @@ public:
 
 // =================================================================================================
 
-File::File(std::string name, std::string mode)
+File::File(std::string name, std::string mode, bool autoflush)
 {
-  m_fid = H5::H5File(name,H5F_ACC_TRUNC);
+  m_fid       = H5::H5File(name,H5F_ACC_TRUNC);
+  m_autoflush = autoflush;
+}
+
+// =================================================================================================
+
+void File::flush()
+{
+  m_fid.flush( H5F_SCOPE_GLOBAL );
 }
 
 // =================================================================================================
@@ -139,6 +151,8 @@ void File::write(std::string path, double input, bool asfloat)
     data[0] = input;
     write(path,data);
   }
+
+  if ( m_autoflush ) flush();
 }
 
 // =================================================================================================
@@ -162,6 +176,8 @@ void File::write(std::string path, const std::vector<float> &input)
   H5::DataSet dataset = m_fid.createDataSet(path,datatype,dataspace);
   // - store data
   dataset.write(input.data(),H5::PredType::NATIVE_FLOAT);
+
+  if ( m_autoflush ) flush();
 }
 
 // =================================================================================================
@@ -203,6 +219,8 @@ void File::write(std::string path, const std::vector<double> &input, bool asfloa
     // - store data
     dataset.write(input.data(),H5::PredType::NATIVE_DOUBLE);
   }
+
+  if ( m_autoflush ) flush();
 }
 
 // =================================================================================================
@@ -229,6 +247,8 @@ void File::write(
   H5::DataSet dataset = m_fid.createDataSet(path,datatype,dataspace);
   // - store data
   dataset.write(input.data(),H5::PredType::NATIVE_HSIZE);
+
+  if ( m_autoflush ) flush();
 }
 
 // =================================================================================================
@@ -276,6 +296,8 @@ void File::write(
     // - store data
     dataset.write(input.data(),H5::PredType::NATIVE_DOUBLE);
   }
+
+  if ( m_autoflush ) flush();
 }
 
 // =================================================================================================
@@ -303,6 +325,8 @@ void File::write(
   H5::DataSet dataset = m_fid.createDataSet(path,datatype,dataspace);
   // - store data
   dataset.write(input.data(),H5::PredType::NATIVE_HSIZE);
+
+  if ( m_autoflush ) flush();
 }
 
 // =================================================================================================
@@ -351,6 +375,8 @@ void File::write(
     // - store data
     dataset.write(input.data(),H5::PredType::NATIVE_DOUBLE);
   }
+
+  if ( m_autoflush ) flush();
 }
 
 // =================================================================================================
