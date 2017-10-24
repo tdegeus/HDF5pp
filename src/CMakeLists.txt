@@ -39,7 +39,7 @@ set(INCLUDE_INSTALL_DIR
 # - CMake configuration
 set(CMAKEPACKAGE_INSTALL_DIR
   "${CMAKE_INSTALL_DATADIR}/HDF5pp"
-  CACHE PATH "Path where HDF5PPConfig.cmake is installed"
+  CACHE PATH "Path where HDF5ppConfig.cmake is installed"
 )
 # - pkg-config
 set(PKGCONFIG_INSTALL_DIR
@@ -65,8 +65,8 @@ endif()
 
 # configure CMake file
 configure_package_config_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/HDF5PPConfig.cmake.in
-  ${CMAKE_CURRENT_BINARY_DIR}/HDF5PPConfig.cmake
+  ${CMAKE_CURRENT_SOURCE_DIR}/HDF5ppConfig.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/HDF5ppConfig.cmake
   PATH_VARS HDF5PP_INCLUDE_DIR HDF5PP_ROOT_DIR
   INSTALL_DESTINATION ${CMAKEPACKAGE_INSTALL_DIR}
   NO_CHECK_REQUIRED_COMPONENTS_MACRO
@@ -75,7 +75,7 @@ configure_package_config_file(
 # install
 # - CMake-file
 install(FILES
-  ${CMAKE_CURRENT_BINARY_DIR}/HDF5PPConfig.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/HDF5ppConfig.cmake
   DESTINATION
   ${CMAKEPACKAGE_INSTALL_DIR}
 )
