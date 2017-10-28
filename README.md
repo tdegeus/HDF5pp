@@ -1,6 +1,8 @@
 # HDF5
 
-A simple HDF5 wrapper.
+A simple HDF5 wrapper. 
+
+Documentation [hdf5pp.geus.me](http://hdf5pp.geus.me)
 
 >   **Disclaimer**
 >   
