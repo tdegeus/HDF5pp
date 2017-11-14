@@ -17,18 +17,21 @@ int main()
   H5p::File file = H5p::File("example.hdf5","r");
 
   // read multidimensional array
-  cppmat::matrix<double> multidim = file.read<double>("/multidim");
+  cppmat::matrix<double> multidim = file.read<cppmat::matrix<double>>("/multidim");
 
+  std::cout << "multidim = " << std::endl;
   std::cout << multidim << std::endl;
 
-  // read matrix -> copy to eigen matrix
-  MatD mat_double = file.read<double>("/mat_double");
+  // read matrix
+  MatD mat_double = file.read<MatD>("/mat_double");
 
+  std::cout << "mat_double = " << std::endl;
   std::cout << mat_double << std::endl;
 
   // read matrix -> copy to eigen matrix
-  MatS mat_size = file.read<size_t>("/mat_size");
+  MatS mat_size = file.read<MatS>("/mat_size");
 
+  std::cout << "mat_size = " << std::endl;
   std::cout << mat_size << std::endl;
 
   return 0;

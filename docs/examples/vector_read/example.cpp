@@ -11,7 +11,7 @@ int main()
 
   // read
   std::vector<size_t> shape = file.shape("/data");
-  std::vector<double> data  = file.read<double>("/data");
+  std::vector<double> data  = file.read<std::vector<double>>("/data");
 
   // print
   for ( size_t i = 0 ; i < shape[0] ; ++i )
