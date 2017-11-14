@@ -1,6 +1,7 @@
 
 #include <iostream>
 #include <Eigen/Eigen>
+#include <cppmat/cppmat.h>
 #include <HDF5pp.h>
 
 // alias row-major types for <Eigen/Dense>
@@ -23,7 +24,7 @@ int main()
   mat_size(1,0) = 2;
   mat_size(1,1) = 3;
   mat_size(2,0) = 4;
-  mat_size(2,1) = 1234567891234567891;
+  mat_size(2,1) = 5;
 
   ColS vec_size(4);
   vec_size(0) = 0;
@@ -31,10 +32,17 @@ int main()
   vec_size(2) = 2;
   vec_size(3) = 3;
 
-  H5p::File file = H5p::File("example.h5");
+  cppmat::matrix<double> multidim({2,3,4,5});
+
+  for ( size_t i = 0 ; i < multidim.size() ; ++i )
+    multidim[i] = static_cast<double>(i);
+
+
+  H5p::File file = H5p::File("example.hdf5","w");
   file.write("/mat_double",mat_double);
   file.write("/mat_size"  ,mat_size  );
   file.write("/vec_size"  ,vec_size  );
+  file.write("/multidim"  ,multidim  );
 
   return 0;
 }
