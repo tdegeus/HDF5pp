@@ -5,6 +5,43 @@
 Usage
 *****
 
+The general structure of a program is
+
+.. code-block:: cpp
+
+  #include <iostream>
+  #include <vector>
+  #include <HDF5pp.h>
+
+  int main()
+  {
+    std::vector<double> out = ...;
+
+    H5p::File file = H5p::File("example.hdf5","w");
+
+    file.write("/path/to/output",out);
+
+    std::vector<double> in = file.read<std::vector<double>>("/path/to/input");
+
+    return 0;
+  }
+
+Thereby:
+
+* ``File`` takes two arguments: the name and the mode. For the latter there are three possibilities:
+
+  - ``"w"``: write a new file or overwrite existing file (allows reading).
+  - ``"r"``: read from existing file (read-only).
+  - ``"a"``: read from and write to an existing file.
+
+* ``File::write("path",...)`` can be overloaded with many different types. If yours is not present please submit a pull request.
+
+* ``File::read<...>("path")`` can be templated with many different types
+
+.. note::
+
+  Although this library is header only, the HDF5 library should be linked. Therefore using either ``h5c++`` or CMake can be used, see :ref:`compile`.
+
 std::vector
 ===========
 
@@ -24,14 +61,17 @@ Writing the array (and optionally it's 'dimensions') is done as follows:
 
     // write
     H5p::File file = H5p::File("example.hdf5","w");
-    file.write("/data",data,shape);
+    // - without shape
+    file.write("/data/as/vector",data);
+    // - with shape
+    file.write("/data/as/matrix",data,shape);
 
     return 0;
   }
 
 [:download:`source: example.cpp <examples/vector_write/example.cpp>`, :download:`compile: CMakeLists.txt <examples/vector_write/CMakeLists.txt>`]
 
-Reading is also straightforward:
+To read:
 
 .. code-block:: cpp
 
@@ -44,12 +84,16 @@ Reading is also straightforward:
     H5p::File file = H5p::File("example.h5","r");
 
     std::vector<size_t> shape = file.shape("/data");
-    std::vector<double> data  = file.read<double>("/data");
+    std::vector<double> data  = file.read<std::vector<double>>("/data");
 
     return 0;
   }
 
 [:download:`source: example.cpp <examples/vector_read/example.cpp>`, :download:`compile: CMakeLists.txt <examples/vector_read/CMakeLists.txt>`]
+
+.. note::
+
+  In the HDF5 archive the data is stored as a matrix. However, because ``std::vector`` is just an array the shape has be extracted separately. For the richer classes below this is not necessary.
 
 Reading with Python does allow direct interpretation of the matrix
 
@@ -107,7 +151,7 @@ Writing matrices of arbitrary dimensions can be done as follows:
 
 [:download:`source: example.cpp <examples/eigen_cppmat_write/example.cpp>`, :download:`compile: CMakeLists.txt <examples/eigen_cppmat_write/CMakeLists.txt>`]
 
-Reading is also straightforward:
+To read:
 
 .. code-block:: cpp
 
@@ -119,25 +163,12 @@ Reading is also straightforward:
   {
     H5p::File file = H5p::File("example.h5","r");
 
-    cppmat::matrix<double> data = file.read<double>("/data");
+    cppmat::matrix<double> data = file.read<cppmat::matrix<double>>("/data");
 
     return 0;
   }
 
 [:download:`source: example.cpp <examples/eigen_cppmat_read/example.cpp>`, :download:`compile: CMakeLists.txt <examples/eigen_cppmat_read/CMakeLists.txt>`]
-
-Reading with Python is also straightforward:
-
-.. code-block:: python
-
-  import h5py
-  import numpy as np
-
-  f = h5py.File('example.h5','r')
-
-  print(f['data'][:])
-
-[:download:`source: example.py <examples/eigen_cppmat_write/example.py>`]
 
 Eigen matrices
 ==============
@@ -185,7 +216,7 @@ Writing matrices or arrays can be done as follows:
 
 [:download:`source: example.cpp <examples/eigen_cppmat_write/example.cpp>`, :download:`compile: CMakeLists.txt <examples/eigen_cppmat_write/CMakeLists.txt>`]
 
-Reading requires the use of cppmat, which can copy directly to Eigen:
+To read:
 
 .. code-block:: cpp
 
@@ -201,26 +232,10 @@ Reading requires the use of cppmat, which can copy directly to Eigen:
   {
     H5p::File file = H5p::File("example.h5","r");
 
-    MatD data = file.read<double>("/data");
+    MatD data = file.read<MatD>("/data");
 
     return 0;
   }
 
 [:download:`source: example.cpp <examples/eigen_cppmat_read/example.cpp>`, :download:`compile: CMakeLists.txt <examples/eigen_cppmat_read/CMakeLists.txt>`]
 
-.. note::
-
-  Note that the Eigen interface of cppmat is automatically enabled by including it after including Eigen.
-
-Reading with Python is also straightforward:
-
-.. code-block:: python
-
-  import h5py
-  import numpy as np
-
-  f = h5py.File('example.h5','r')
-
-  print(f['data'][:])
-
-[:download:`source: example.py <examples/eigen_cppmat_write/example.py>`]

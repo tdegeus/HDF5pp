@@ -10,6 +10,8 @@ Introduction
 
 This module is header only. So one just has to ``#include <HDF5pp/HDF5pp.h>`` (or only one of the submodules) somewhere in the source code, and to tell the compiler where the header-files are. For the latter, several ways are described below.
 
+One should take note that one should still link with the HDF5 libraries. This is briefly described in :ref:`linking`.
+
 Before proceeding, a words about optimization. Of course one should use optimization when compiling the release of the code (``-O2`` or ``-O3``). But it is also a good idea to switch of the assertions in the code (mostly checks on size) that facilitate easy debugging, but do cost time. Therefore, include the flag ``-DNDEBUG``. Note that this is all C++ standard. I.e. it should be no surprise, and it always a good idea to do.
 
 Manual compiler flags
@@ -125,3 +127,55 @@ Add the following to your ``CMakeLists.txt``:
 
   pkg_check_modules(HDF5PP REQUIRED HDF5pp)
   include_directories(${HDF5PP_INCLUDE_DIRS})
+
+.. _linking:
+
+Linking with the HDF5 libraries
+===============================
+
+Using the h5c++ executable
+---------------------------
+
+The ``h5c++`` executable provides a wrapper around your compiler, with all flags set correctly to use HDF5. To compile the following suffices:
+
+.. coode-block:: bash
+
+  h5c++ `pkg-config --cflags HDF5pp` -std=c++14 example.cpp
+
+Using cmake
+-----------
+
+The following basic structure of ``CMakeLists.txt`` can be used:
+
+.. cpde-block:: cmake
+
+  cmake_minimum_required(VERSION 2.8.12)
+
+  # define a project name
+  project(example)
+
+  # set optimization level
+  set(CMAKE_BUILD_TYPE Release)
+
+  # set C++ standard
+  set(CMAKE_CXX_STANDARD 14)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+  # load pkg-config
+  find_package(PkgConfig)
+
+  # find HDF5
+  find_package(HDF5 COMPONENTS CXX REQUIRED)
+  include_directories(${HDF5_INCLUDE_DIRS})
+  set(HDF5_LIBS ${HDF5_LIBS} ${HDF5_LIBRARIES})
+
+  # find HDF5pp
+  pkg_check_modules(HDF5PP REQUIRED HDF5pp)
+  include_directories(${HDF5PP_INCLUDE_DIRS})
+
+  # add executable
+  add_executable(${PROJECT_NAME} example.cpp)
+
+  # link libraries
+  target_link_libraries(${PROJECT_NAME} ${HDF5_LIBS})
+
