@@ -138,7 +138,7 @@ Using the h5c++ executable
 
 The ``h5c++`` executable provides a wrapper around your compiler, with all flags set correctly to use HDF5. To compile the following suffices:
 
-.. coode-block:: bash
+.. code-block:: bash
 
   h5c++ `pkg-config --cflags HDF5pp` -std=c++14 example.cpp
 
@@ -147,7 +147,7 @@ Using cmake
 
 The following basic structure of ``CMakeLists.txt`` can be used:
 
-.. cpde-block:: cmake
+.. code-block:: cmake
 
   cmake_minimum_required(VERSION 2.8.12)
 

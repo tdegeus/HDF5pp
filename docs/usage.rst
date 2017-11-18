@@ -5,6 +5,9 @@
 Usage
 *****
 
+General example
+===============
+
 The general structure of a program is
 
 .. code-block:: cpp
@@ -26,24 +29,52 @@ The general structure of a program is
     return 0;
   }
 
-Thereby:
-
-* ``File`` takes two arguments: the name and the mode. For the latter there are three possibilities:
-
-  - ``"w"``: write a new file or overwrite existing file (allows reading).
-  - ``"r"``: read from existing file (read-only).
-  - ``"a"``: read from and write to an existing file.
-
-* ``File::write("path",...)`` can be overloaded with many different types. If yours is not present please submit a pull request.
-
-* ``File::read<...>("path")`` can be templated with many different types
-
 .. note::
 
   Although this library is header only, the HDF5 library should be linked. Therefore using either ``h5c++`` or CMake can be used, see :ref:`compile`.
 
+Function overview
+=================
+
+All functions are member of the ``File`` class:
+
+.. code-block:: cpp
+
+  H5p::File("/path/to/file","mode");
+
+``File`` takes two arguments: the file name and the mode. For the latter there are three possibilities:
+
+- ``"w"``: write a new file or overwrite existing file (allows reading).
+- ``"r"``: read from existing file (read-only).
+- ``"a"``: read from and write to an existing file.
+
+Main functions:
+
+* ``void File::write("/path/to/data",...)``: write data (scalar, array, matrix, ...). Can be overloaded with many different types, see :ref:`overloaded_types`.
+
+* ``Type File::read<Type>("/path/to/data")``: read data (scalar, array, matrix, ...). Can be templated with many different types, see :ref:`overloaded_types`.
+
+Support functions:
+
+* ``void File::unlink("/path/to/data")``: unlink a path. The dataset is removed when there are no more links to it. Warning: depending on the version of the HDF5 library, the space may not be freed from the file. In that case use ``$ h5repack file1 file2`` to free create a new file without the unused data.
+
+* ``bool File::exists("/path/to/data")``: check if a path exists.
+
+* ``void File::createGroup("/path/to/group")``: create a group. Usually there is no need to call this functions because the ``write`` function automatically creates all parent groups.
+
+* ``void File::flush()``: flush all buffers associated with a file to disk. Usually there is no need to call this functions because the ``write`` function automatically flushes the file (this can be suppressed using the option of the ``File`` constructor).
+
+.. _overloaded_types:
+
+Overloaded types
+================
+
+.. note::
+
+  If yours is not present please submit a pull request.
+
 std::vector
-===========
+-----------
 
 Writing the array (and optionally it's 'dimensions') is done as follows:
 
@@ -109,7 +140,7 @@ Reading with Python does allow direct interpretation of the matrix
 [:download:`source: example.py <examples/vector_write/example.py>`]
 
 cppmat multi-dimensional arrays
-===============================
+-------------------------------
 
 To enable this feature:
 
@@ -171,7 +202,7 @@ To read:
 [:download:`source: example.cpp <examples/eigen_cppmat_read/example.cpp>`, :download:`compile: CMakeLists.txt <examples/eigen_cppmat_read/CMakeLists.txt>`]
 
 Eigen matrices
-==============
+--------------
 
 To enable this feature:
 
