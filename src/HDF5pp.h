@@ -72,9 +72,16 @@ public:
   // flush all buffers associated with a file to disk
   void flush();
 
+  // check if a path exists (is a group or a dataset)
+  bool exists(std::string path);
+
   // create a group based on a specified path
   // NB "write" automatically does this, there is usually no need to call this function
   void createGroup(std::string path);
+
+  // unlink a path
+  // WARNING the space in the file may not be freed, use: $ h5repack file1 file2
+  void unlink(std::string path);
 
   // store scalar
   // ------------
@@ -163,6 +170,13 @@ void File::flush()
 
 // -------------------------------------------------------------------------------------------------
 
+bool File::exists(std::string path)
+{
+  return m_fid.exists(path);
+}
+
+// -------------------------------------------------------------------------------------------------
+
 void File::createGroup(std::string path)
 {
   // suppress exceptions
@@ -186,6 +200,13 @@ void File::createGroup(std::string path)
     // - proceed to next "/"
     idx = path.find("/",idx+1);
   }
+}
+
+// -------------------------------------------------------------------------------------------------
+
+void File::unlink(std::string path)
+{
+  m_fid.unlink(path.c_str());
 }
 
 // =================================================================================================
