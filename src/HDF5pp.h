@@ -176,6 +176,27 @@ void File::flush()
 
 bool File::exists(std::string path)
 {
+  // find first "/"
+  size_t idx = path.find("/");
+
+  // loop over all groups
+  while ( true )
+  {
+    // - terminate if all "/" have been found
+    if ( std::string::npos == idx )
+      break;
+    // - create group if needed
+    if ( idx > 0 )
+    {
+      // -- get group name
+      std::string name(path.substr(0,idx));
+      // -- create if needed
+      if ( !m_fid.exists(name) ) return false;
+    }
+    // - proceed to next "/"
+    idx = path.find("/",idx+1);
+  }
+
   return m_fid.exists(path);
 }
 
@@ -227,13 +248,16 @@ std::vector<size_t> File::shape(std::string path)
   // - read rank (a.k.a number of dimensions)
   int rank = dataspace.getSimpleExtentNdims();
   // - allocate as HDF5-type
-  hsize_t hshape[rank];
+  hsize_t * dimsf = (hsize_t*)malloc(rank);
   // - allocate as vector
   std::vector<size_t> shape(rank);
   // - read
-  dataspace.getSimpleExtentDims(hshape, NULL);
+  dataspace.getSimpleExtentDims(dimsf, NULL);
   // - convert to vector
-  for ( int i = 0 ; i < rank ; ++i ) shape[i] = static_cast<size_t>(hshape[i]);
+  for ( int i = 0 ; i < rank ; ++i ) shape[i] = static_cast<size_t>(dimsf[i]);
+
+  // free memory
+  free(dimsf);
 
   // return output
   return shape;
@@ -251,15 +275,20 @@ size_t File::shape(std::string path, size_t i)
   // - read rank (a.k.a number of dimensions)
   int rank = dataspace.getSimpleExtentNdims();
   // - check rank
-  if ( rank < i )
+  if ( rank < static_cast<int>(i) )
     throw std::runtime_error("Cannot read, rank of data lower that requested");
   // - allocate as HDF5-type
-  hsize_t hshape[rank];
+  hsize_t * dimsf = (hsize_t*)malloc(rank);
   // - read
-  dataspace.getSimpleExtentDims(hshape, NULL);
+  dataspace.getSimpleExtentDims(dimsf, NULL);
+  // - get output
+  size_t shape = static_cast<size_t>(dimsf[i]);
+
+  // free memory
+  free(dimsf);
 
   // return output
-  return static_cast<size_t>(hshape[i]);
+  return shape;
 }
 
 // =================================================================================================
@@ -374,13 +403,15 @@ size_t File::read<size_t>(std::string path)
   // check the size (cannot be >1)
   if ( rank != 0 )
   {
-    // - allocate
-    hsize_t hshape[rank];
+    // - allocate as HDF5-type
+    hsize_t * dimsf = (hsize_t*)malloc(rank);
     // - read
-    dataspace.getSimpleExtentDims(hshape, NULL);
+    dataspace.getSimpleExtentDims(dimsf, NULL);
     // - total size
     size_t size = 0;
-    for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(hshape[i]);
+    for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(dimsf[i]);
+    // - free memory
+    free(dimsf);
     // - check size
     if ( size > 1 )
       throw std::runtime_error("Unable to read, data is array");
@@ -425,13 +456,15 @@ double File::read<double>(std::string path)
   // check the size (cannot be >1)
   if ( rank != 0 )
   {
-    // - allocate
-    hsize_t hshape[rank];
+    // - allocate as HDF5-type
+    hsize_t * dimsf = (hsize_t*)malloc(rank);
     // - read
-    dataspace.getSimpleExtentDims(hshape, NULL);
+    dataspace.getSimpleExtentDims(dimsf, NULL);
     // - total size
     size_t size = 0;
-    for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(hshape[i]);
+    for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(dimsf[i]);
+    // - free memory
+    free(dimsf);
     // - check size
     if ( size > 1 )
       throw std::runtime_error("Unable to read, data is array");
@@ -469,8 +502,8 @@ void File::write(std::string path, const std::vector<float> &input, const std::v
   // shape of the array
   // - get the rank
   size_t rank = dims.size();
-  // - allocate
-  hsize_t dimsf[rank];
+  // - allocate as HDF5-type
+  hsize_t * dimsf = (hsize_t*)malloc(rank);
   // - copy
   for ( size_t i = 0 ; i < rank ; ++i )
     dimsf[i] = dims[i];
@@ -487,6 +520,9 @@ void File::write(std::string path, const std::vector<float> &input, const std::v
 
   // store data
   dataset.write(input.data(), H5::PredType::NATIVE_FLOAT);
+
+  // free memory
+  free(dimsf);
 
   // flush the file if so requested
   if ( m_autoflush ) flush();
@@ -512,8 +548,8 @@ void File::write(std::string path, const std::vector<double> &input, const std::
   // shape of the array
   // - get the rank
   size_t rank = dims.size();
-  // - allocate
-  hsize_t dimsf[rank];
+  // - allocate as HDF5-type
+  hsize_t * dimsf = (hsize_t*)malloc(rank);
   // - copy
   for ( size_t i = 0 ; i < rank ; ++i )
     dimsf[i] = dims[i];
@@ -530,6 +566,9 @@ void File::write(std::string path, const std::vector<double> &input, const std::
 
   // store data
   dataset.write(input.data(), H5::PredType::NATIVE_DOUBLE);
+
+  // free memory
+  free(dimsf);
 
   // flush the file if so requested
   if ( m_autoflush ) flush();
@@ -561,19 +600,22 @@ std::vector<double> File::read<std::vector<double>>(std::string path)
   // get the size
   // - read rank (a.k.a number of dimensions)
   int rank = dataspace.getSimpleExtentNdims();
-  // - allocate
-  hsize_t hshape[rank];
+  // - allocate as HDF5-type
+  hsize_t * dimsf = (hsize_t*)malloc(rank);
   // - read
-  dataspace.getSimpleExtentDims(hshape, NULL);
+  dataspace.getSimpleExtentDims(dimsf, NULL);
   // - total size
   size_t size = 0;
-  for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(hshape[i]);
+  for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(dimsf[i]);
 
   // allocate output
   std::vector<double> data(size);
 
   // read data
   dataset.read(const_cast<double*>(data.data()), H5::PredType::NATIVE_DOUBLE);
+
+  // - free memory
+  free(dimsf);
 
   // return output
   return data;
@@ -605,19 +647,22 @@ std::vector<size_t> File::read<std::vector<size_t>>(std::string path)
   // get the size
   // - read rank (a.k.a number of dimensions)
   int rank = dataspace.getSimpleExtentNdims();
-  // - allocate
-  hsize_t hshape[rank];
+  // - allocate as HDF5-type
+  hsize_t * dimsf = (hsize_t*)malloc(rank);
   // - read
-  dataspace.getSimpleExtentDims(hshape, NULL);
+  dataspace.getSimpleExtentDims(dimsf, NULL);
   // - total size
   size_t size = 0;
-  for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(hshape[i]);
+  for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(dimsf[i]);
 
   // allocate output
   std::vector<size_t> data(size);
 
   // read data
   dataset.read(const_cast<size_t*>(data.data()), H5::PredType::NATIVE_HSIZE);
+
+  // free memory
+  free(dimsf);
 
   // return output
   return data;
@@ -782,19 +827,22 @@ File::read<Eigen::Matrix<size_t, Eigen::Dynamic, 1, Eigen::ColMajor>>(std::strin
   // get the size
   // - read rank (a.k.a number of dimensions)
   int rank = dataspace.getSimpleExtentNdims();
-  // - allocate
-  hsize_t hshape[rank];
+  // - allocate as HDF5-type
+  hsize_t * dimsf = (hsize_t*)malloc(rank);
   // - read
-  dataspace.getSimpleExtentDims(hshape, NULL);
+  dataspace.getSimpleExtentDims(dimsf, NULL);
   // - total size
   size_t size = 0;
-  for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(hshape[i]);
+  for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(dimsf[i]);
 
   // allocate output
   Eigen::Matrix<size_t, Eigen::Dynamic, 1, Eigen::ColMajor> data(size);
 
   // read data
   dataset.read(data.data(), H5::PredType::NATIVE_HSIZE);
+
+  // free memory
+  free(dimsf);
 
   // return output
   return data;
@@ -827,19 +875,22 @@ File::read<Eigen::Matrix<double, Eigen::Dynamic, 1, Eigen::ColMajor>>(std::strin
   // get the size
   // - read rank (a.k.a number of dimensions)
   int rank = dataspace.getSimpleExtentNdims();
-  // - allocate
-  hsize_t hshape[rank];
+  // - allocate as HDF5-type
+  hsize_t * dimsf = (hsize_t*)malloc(rank);
   // - read
-  dataspace.getSimpleExtentDims(hshape, NULL);
+  dataspace.getSimpleExtentDims(dimsf, NULL);
   // - total size
   size_t size = 0;
-  for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(hshape[i]);
+  for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(dimsf[i]);
 
   // allocate output
   Eigen::Matrix<double, Eigen::Dynamic, 1, Eigen::ColMajor> data(size);
 
   // read data
   dataset.read(data.data(), H5::PredType::NATIVE_DOUBLE);
+
+  // free memory
+  free(dimsf);
 
   // return output
   return data;
@@ -876,16 +927,19 @@ File::read<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor
     throw std::runtime_error("Unable to read, incorrect rank");
 
   // get the size in each direction
-  // - allocate
-  hsize_t hshape[rank];
+  // - allocate as HDF5-type
+  hsize_t * dimsf = (hsize_t*)malloc(rank);
   // - read
-  dataspace.getSimpleExtentDims(hshape, NULL);
+  dataspace.getSimpleExtentDims(dimsf, NULL);
 
   // allocate output
-  Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> data(hshape[0],hshape[1]);
+  Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> data(dimsf[0],dimsf[1]);
 
   // read data
   dataset.read(data.data(), H5::PredType::NATIVE_DOUBLE);
+
+  // free memory
+  free(dimsf);
 
   // return output
   return data;
@@ -922,16 +976,19 @@ File::read<Eigen::Matrix<size_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor
     throw std::runtime_error("Unable to read, incorrect rank");
 
   // get the size in each direction
-  // - allocate
-  hsize_t hshape[rank];
+  // - allocate as HDF5-type
+  hsize_t * dimsf = (hsize_t*)malloc(rank);
   // - read
-  dataspace.getSimpleExtentDims(hshape, NULL);
+  dataspace.getSimpleExtentDims(dimsf, NULL);
 
   // allocate output
-  Eigen::Matrix<size_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> data(hshape[0],hshape[1]);
+  Eigen::Matrix<size_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> data(dimsf[0],dimsf[1]);
 
   // read data
   dataset.read(data.data(), H5::PredType::NATIVE_HSIZE);
+
+  // free memory
+  free(dimsf);
 
   // return output
   return data;
@@ -956,15 +1013,15 @@ void File::write(std::string path, const cppmat::matrix<double> &input)
 
   // shape of the array
   // - get the number of dimensions
-  size_t nd = input.ndim();
-  // - allocate depending on the dimensions of the input
-  hsize_t dimsf[nd];
+  size_t rank = input.ndim();
+  // - allocate as HDF5-type
+  hsize_t * dimsf = (hsize_t*)malloc(rank);
   // - store shape in each direction
-  for ( size_t i = 0 ; i < nd ; ++i )
+  for ( size_t i = 0 ; i < rank ; ++i )
     dimsf[i] = input.shape(i);
 
   // define storage shape / type
-  H5::DataSpace dataspace(nd,dimsf);
+  H5::DataSpace dataspace(rank,dimsf);
   H5::FloatType datatype(H5::PredType::NATIVE_DOUBLE);
 
   // use little endian storage
@@ -975,6 +1032,9 @@ void File::write(std::string path, const cppmat::matrix<double> &input)
 
   // store data
   dataset.write(input.data(), H5::PredType::NATIVE_DOUBLE);
+
+  // free memory
+  free(dimsf);
 
   // flush the file if so requested
   if ( m_autoflush ) flush();
@@ -1006,20 +1066,24 @@ cppmat::matrix<double> File::read<cppmat::matrix<double>>(std::string path)
   // get the size in each direction
   // - read rank (a.k.a number of dimensions)
   int rank = dataspace.getSimpleExtentNdims();
+  // - allocate as HDF5-type
+  hsize_t * dimsf = (hsize_t*)malloc(rank);
   // - allocate
-  hsize_t hshape[rank];
   std::vector<size_t> shape(rank);
   // - read
-  dataspace.getSimpleExtentDims(hshape, NULL);
+  dataspace.getSimpleExtentDims(dimsf, NULL);
   // - convert to vector
   for ( int i = 0 ; i < rank ; ++i )
-    shape[i] = static_cast<size_t>(hshape[i]);
+    shape[i] = static_cast<size_t>(dimsf[i]);
 
   // allocate output
   cppmat::matrix<double> data(shape);
 
   // read data
   dataset.read(data.data(), H5::PredType::NATIVE_DOUBLE);
+
+  // - free memory
+  free(dimsf);
 
   // return output
   return data;
@@ -1051,20 +1115,24 @@ cppmat::matrix<size_t> File::read<cppmat::matrix<size_t>>(std::string path)
   // get the size in each direction
   // - read rank (a.k.a number of dimensions)
   int rank = dataspace.getSimpleExtentNdims();
+  // - allocate as HDF5-type
+  hsize_t * dimsf = (hsize_t*)malloc(rank);
   // - allocate
-  hsize_t hshape[rank];
   std::vector<size_t> shape(rank);
   // - read
-  dataspace.getSimpleExtentDims(hshape, NULL);
+  dataspace.getSimpleExtentDims(dimsf, NULL);
   // - convert to vector
   for ( int i = 0 ; i < rank ; ++i )
-    shape[i] = static_cast<size_t>(hshape[i]);
+    shape[i] = static_cast<size_t>(dimsf[i]);
 
   // allocate output
   cppmat::matrix<size_t> data(shape);
 
   // read data
   dataset.read(data.data(), H5::PredType::NATIVE_HSIZE);
+
+  // free memory
+  free(dimsf);
 
   // return output
   return data;
