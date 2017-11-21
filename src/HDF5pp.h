@@ -151,7 +151,7 @@ public:
 // constructor
 // =================================================================================================
 
-File::File(std::string name, std::string mode, bool autoflush)
+inline File::File(std::string name, std::string mode, bool autoflush)
 {
   // open file
   if      ( mode == "w" ) m_fid = H5::H5File(name.c_str(),H5F_ACC_TRUNC );
@@ -167,14 +167,14 @@ File::File(std::string name, std::string mode, bool autoflush)
 // support functions
 // =================================================================================================
 
-void File::flush()
+inline void File::flush()
 {
   m_fid.flush(H5F_SCOPE_GLOBAL);
 }
 
 // -------------------------------------------------------------------------------------------------
 
-bool File::exists(std::string path)
+inline bool File::exists(std::string path)
 {
   // find first "/"
   size_t idx = path.find("/");
@@ -202,7 +202,7 @@ bool File::exists(std::string path)
 
 // -------------------------------------------------------------------------------------------------
 
-void File::createGroup(std::string path)
+inline void File::createGroup(std::string path)
 {
   // find first "/"
   size_t idx = path.find("/");
@@ -229,7 +229,7 @@ void File::createGroup(std::string path)
 
 // -------------------------------------------------------------------------------------------------
 
-void File::unlink(std::string path)
+inline void File::unlink(std::string path)
 {
   m_fid.unlink(path.c_str());
 }
@@ -238,7 +238,7 @@ void File::unlink(std::string path)
 // get shape of an array
 // =================================================================================================
 
-std::vector<size_t> File::shape(std::string path)
+inline std::vector<size_t> File::shape(std::string path)
 {
   // open dataset
   H5::DataSet   dataset   = m_fid.openDataSet(path.c_str());
@@ -265,7 +265,7 @@ std::vector<size_t> File::shape(std::string path)
 
 // -------------------------------------------------------------------------------------------------
 
-size_t File::shape(std::string path, size_t i)
+inline size_t File::shape(std::string path, size_t i)
 {
   // open dataset
   H5::DataSet   dataset   = m_fid.openDataSet(path.c_str());
@@ -295,7 +295,7 @@ size_t File::shape(std::string path, size_t i)
 // scalar
 // =================================================================================================
 
-void File::write(std::string path, size_t input)
+inline void File::write(std::string path, size_t input)
 {
   // create group(s) if needed
   createGroup(path);
@@ -322,7 +322,7 @@ void File::write(std::string path, size_t input)
 
 // -------------------------------------------------------------------------------------------------
 
-void File::write(std::string path, float input)
+inline void File::write(std::string path, float input)
 {
   // create group(s) if needed
   createGroup(path);
@@ -349,7 +349,7 @@ void File::write(std::string path, float input)
 
 // -------------------------------------------------------------------------------------------------
 
-void File::write(std::string path, double input)
+inline void File::write(std::string path, double input)
 {
   // create group(s) if needed
   createGroup(path);
@@ -377,7 +377,7 @@ void File::write(std::string path, double input)
 // -------------------------------------------------------------------------------------------------
 
 template<>
-size_t File::read<size_t>(std::string path)
+inline size_t File::read<size_t>(std::string path)
 {
   // open dataset
   H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
@@ -430,7 +430,7 @@ size_t File::read<size_t>(std::string path)
 // -------------------------------------------------------------------------------------------------
 
 template<>
-double File::read<double>(std::string path)
+inline double File::read<double>(std::string path)
 {
   // open dataset
   H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
@@ -484,7 +484,7 @@ double File::read<double>(std::string path)
 // std::vector
 // =================================================================================================
 
-void File::write(std::string path, const std::vector<float> &input, const std::vector<size_t> &shape)
+inline void File::write(std::string path, const std::vector<float> &input, const std::vector<size_t> &shape)
 {
   // create group(s) if needed
   createGroup(path);
@@ -530,7 +530,7 @@ void File::write(std::string path, const std::vector<float> &input, const std::v
 
 // -------------------------------------------------------------------------------------------------
 
-void File::write(std::string path, const std::vector<double> &input, const std::vector<size_t> &shape)
+inline void File::write(std::string path, const std::vector<double> &input, const std::vector<size_t> &shape)
 {
   // create group(s) if needed
   createGroup(path);
@@ -577,7 +577,7 @@ void File::write(std::string path, const std::vector<double> &input, const std::
 // -------------------------------------------------------------------------------------------------
 
 template<>
-std::vector<double> File::read<std::vector<double>>(std::string path)
+inline std::vector<double> File::read<std::vector<double>>(std::string path)
 {
   // open dataset
   H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
@@ -624,7 +624,7 @@ std::vector<double> File::read<std::vector<double>>(std::string path)
 // -------------------------------------------------------------------------------------------------
 
 template<>
-std::vector<size_t> File::read<std::vector<size_t>>(std::string path)
+inline std::vector<size_t> File::read<std::vector<size_t>>(std::string path)
 {
   // open dataset
   H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
@@ -676,7 +676,7 @@ std::vector<size_t> File::read<std::vector<size_t>>(std::string path)
 
 // -------------------------------------------------------------------------------------------------
 
-void File::write(
+inline void File::write(
   std::string path,
   const Eigen::Matrix<size_t, Eigen::Dynamic, 1, Eigen::ColMajor> &input
 )
@@ -707,7 +707,7 @@ void File::write(
 
 // -------------------------------------------------------------------------------------------------
 
-void File::write(
+inline void File::write(
   std::string path,
   const Eigen::Matrix<double, Eigen::Dynamic, 1, Eigen::ColMajor> &input
 )
@@ -738,7 +738,7 @@ void File::write(
 
 // -------------------------------------------------------------------------------------------------
 
-void File::write(
+inline void File::write(
   std::string path,
   const Eigen::Matrix<size_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> &input
 )
@@ -770,7 +770,7 @@ void File::write(
 
 // -------------------------------------------------------------------------------------------------
 
-void File::write(
+inline void File::write(
   std::string path,
   const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> &input
 )
@@ -803,7 +803,7 @@ void File::write(
 // -------------------------------------------------------------------------------------------------
 
 template<>
-Eigen::Matrix<size_t, Eigen::Dynamic, 1, Eigen::ColMajor>
+inline Eigen::Matrix<size_t, Eigen::Dynamic, 1, Eigen::ColMajor>
 File::read<Eigen::Matrix<size_t, Eigen::Dynamic, 1, Eigen::ColMajor>>(std::string path)
 {
   // open dataset
@@ -851,7 +851,7 @@ File::read<Eigen::Matrix<size_t, Eigen::Dynamic, 1, Eigen::ColMajor>>(std::strin
 // -------------------------------------------------------------------------------------------------
 
 template<>
-Eigen::Matrix<double, Eigen::Dynamic, 1, Eigen::ColMajor>
+inline Eigen::Matrix<double, Eigen::Dynamic, 1, Eigen::ColMajor>
 File::read<Eigen::Matrix<double, Eigen::Dynamic, 1, Eigen::ColMajor>>(std::string path)
 {
   // open dataset
@@ -899,7 +899,7 @@ File::read<Eigen::Matrix<double, Eigen::Dynamic, 1, Eigen::ColMajor>>(std::strin
 // -------------------------------------------------------------------------------------------------
 
 template<>
-Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
+inline Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
 File::read<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(std::string path)
 {
   // open dataset
@@ -948,7 +948,7 @@ File::read<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor
 // -------------------------------------------------------------------------------------------------
 
 template<>
-Eigen::Matrix<size_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
+inline Eigen::Matrix<size_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
 File::read<Eigen::Matrix<size_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(std::string path)
 {
   // open dataset
@@ -1006,7 +1006,7 @@ File::read<Eigen::Matrix<size_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor
 
 // -------------------------------------------------------------------------------------------------
 
-void File::write(std::string path, const cppmat::matrix<double> &input)
+inline void File::write(std::string path, const cppmat::matrix<double> &input)
 {
   // create group(s) if needed
   createGroup(path);
@@ -1043,7 +1043,7 @@ void File::write(std::string path, const cppmat::matrix<double> &input)
 // -------------------------------------------------------------------------------------------------
 
 template<>
-cppmat::matrix<double> File::read<cppmat::matrix<double>>(std::string path)
+inline cppmat::matrix<double> File::read<cppmat::matrix<double>>(std::string path)
 {
   // open dataset
   H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
@@ -1092,7 +1092,7 @@ cppmat::matrix<double> File::read<cppmat::matrix<double>>(std::string path)
 // -------------------------------------------------------------------------------------------------
 
 template<>
-cppmat::matrix<size_t> File::read<cppmat::matrix<size_t>>(std::string path)
+inline cppmat::matrix<size_t> File::read<cppmat::matrix<size_t>>(std::string path)
 {
   // open dataset
   H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
