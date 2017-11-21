@@ -56,8 +56,9 @@ namespace H5p {
 class File
 {
 private:
-  H5::H5File m_fid;
-  bool       m_autoflush;
+  H5::H5File  m_fid;
+  std::string m_fname;
+  bool        m_autoflush;
 
 public:
 
@@ -153,10 +154,13 @@ public:
 
 inline File::File(std::string name, std::string mode, bool autoflush)
 {
+  // copy filename
+  m_fname = name;
+
   // open file
-  if      ( mode == "w" ) m_fid = H5::H5File(name.c_str(),H5F_ACC_TRUNC );
-  else if ( mode == "a" ) m_fid = H5::H5File(name.c_str(),H5F_ACC_RDWR  );
-  else if ( mode == "r" ) m_fid = H5::H5File(name.c_str(),H5F_ACC_RDONLY);
+  if      ( mode == "w" ) m_fid = H5::H5File(m_fname.c_str(),H5F_ACC_TRUNC );
+  else if ( mode == "a" ) m_fid = H5::H5File(m_fname.c_str(),H5F_ACC_RDWR  );
+  else if ( mode == "r" ) m_fid = H5::H5File(m_fname.c_str(),H5F_ACC_RDONLY);
   else    throw std::runtime_error("HDF5pp: unknown mode to open file");
 
   // store flush settings
