@@ -154,9 +154,9 @@ public:
 File::File(std::string name, std::string mode, bool autoflush)
 {
   // open file
-  if      ( mode == "w" ) m_fid = H5::H5File(name,H5F_ACC_TRUNC );
-  else if ( mode == "a" ) m_fid = H5::H5File(name,H5F_ACC_RDWR  );
-  else if ( mode == "r" ) m_fid = H5::H5File(name,H5F_ACC_RDONLY);
+  if      ( mode == "w" ) m_fid = H5::H5File(name.c_str(),H5F_ACC_TRUNC );
+  else if ( mode == "a" ) m_fid = H5::H5File(name.c_str(),H5F_ACC_RDWR  );
+  else if ( mode == "r" ) m_fid = H5::H5File(name.c_str(),H5F_ACC_RDONLY);
   else    throw std::runtime_error("HDF5pp: unknown mode to open file");
 
   // store flush settings
@@ -191,13 +191,13 @@ bool File::exists(std::string path)
       // -- get group name
       std::string name(path.substr(0,idx));
       // -- create if needed
-      if ( !m_fid.exists(name) ) return false;
+      if ( !m_fid.exists(name.c_str()) ) return false;
     }
     // - proceed to next "/"
     idx = path.find("/",idx+1);
   }
 
-  return m_fid.exists(path);
+  return m_fid.exists(path.c_str());
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -219,7 +219,7 @@ void File::createGroup(std::string path)
       // -- get group name
       std::string name(path.substr(0,idx));
       // -- create if needed
-      if ( !m_fid.exists(name) )
+      if ( !m_fid.exists(name.c_str()) )
         H5::Group group = m_fid.createGroup(name.c_str());
     }
     // - proceed to next "/"
@@ -241,7 +241,7 @@ void File::unlink(std::string path)
 std::vector<size_t> File::shape(std::string path)
 {
   // open dataset
-  H5::DataSet   dataset   = m_fid.openDataSet(path);
+  H5::DataSet   dataset   = m_fid.openDataSet(path.c_str());
   H5::DataSpace dataspace = dataset.getSpace();
 
   // get the size in each direction
@@ -268,7 +268,7 @@ std::vector<size_t> File::shape(std::string path)
 size_t File::shape(std::string path, size_t i)
 {
   // open dataset
-  H5::DataSet   dataset   = m_fid.openDataSet(path);
+  H5::DataSet   dataset   = m_fid.openDataSet(path.c_str());
   H5::DataSpace dataspace = dataset.getSpace();
 
   // get the size in each direction
@@ -311,7 +311,7 @@ void File::write(std::string path, size_t input)
   datatype.setOrder(H5T_ORDER_LE);
 
   // add data-set to file
-  H5::DataSet dataset = m_fid.createDataSet(path,datatype,dataspace);
+  H5::DataSet dataset = m_fid.createDataSet(path.c_str(),datatype,dataspace);
 
   // store data
   dataset.write(&input, H5::PredType::NATIVE_HSIZE);
@@ -338,7 +338,7 @@ void File::write(std::string path, float input)
   datatype.setOrder(H5T_ORDER_LE);
 
   // add data-set to file
-  H5::DataSet dataset = m_fid.createDataSet(path,datatype,dataspace);
+  H5::DataSet dataset = m_fid.createDataSet(path.c_str(),datatype,dataspace);
 
   // store data
   dataset.write(&input, H5::PredType::NATIVE_FLOAT);
@@ -365,7 +365,7 @@ void File::write(std::string path, double input)
   datatype.setOrder(H5T_ORDER_LE);
 
   // add data-set to file
-  H5::DataSet dataset = m_fid.createDataSet(path,datatype,dataspace);
+  H5::DataSet dataset = m_fid.createDataSet(path.c_str(),datatype,dataspace);
 
   // store data
   dataset.write(&input, H5::PredType::NATIVE_DOUBLE);
@@ -380,7 +380,7 @@ template<>
 size_t File::read<size_t>(std::string path)
 {
   // open dataset
-  H5::DataSet   dataset    = m_fid.openDataSet(path);
+  H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
   H5::DataSpace dataspace  = dataset.getSpace();
   H5T_class_t   type_class = dataset.getTypeClass();
 
@@ -433,7 +433,7 @@ template<>
 double File::read<double>(std::string path)
 {
   // open dataset
-  H5::DataSet   dataset    = m_fid.openDataSet(path);
+  H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
   H5::DataSpace dataspace  = dataset.getSpace();
   H5T_class_t   type_class = dataset.getTypeClass();
 
@@ -516,7 +516,7 @@ void File::write(std::string path, const std::vector<float> &input, const std::v
   datatype.setOrder(H5T_ORDER_LE);
 
   // add data-set to file
-  H5::DataSet dataset = m_fid.createDataSet(path,datatype,dataspace);
+  H5::DataSet dataset = m_fid.createDataSet(path.c_str(),datatype,dataspace);
 
   // store data
   dataset.write(input.data(), H5::PredType::NATIVE_FLOAT);
@@ -562,7 +562,7 @@ void File::write(std::string path, const std::vector<double> &input, const std::
   datatype.setOrder(H5T_ORDER_LE);
 
   // add data-set to file
-  H5::DataSet dataset = m_fid.createDataSet(path,datatype,dataspace);
+  H5::DataSet dataset = m_fid.createDataSet(path.c_str(),datatype,dataspace);
 
   // store data
   dataset.write(input.data(), H5::PredType::NATIVE_DOUBLE);
@@ -580,7 +580,7 @@ template<>
 std::vector<double> File::read<std::vector<double>>(std::string path)
 {
   // open dataset
-  H5::DataSet   dataset    = m_fid.openDataSet(path);
+  H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
   H5::DataSpace dataspace  = dataset.getSpace();
   H5T_class_t   type_class = dataset.getTypeClass();
 
@@ -627,7 +627,7 @@ template<>
 std::vector<size_t> File::read<std::vector<size_t>>(std::string path)
 {
   // open dataset
-  H5::DataSet   dataset    = m_fid.openDataSet(path);
+  H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
   H5::DataSpace dataspace  = dataset.getSpace();
   H5T_class_t   type_class = dataset.getTypeClass();
 
@@ -696,7 +696,7 @@ void File::write(
   datatype.setOrder(H5T_ORDER_LE);
 
   // add data-set to file
-  H5::DataSet dataset = m_fid.createDataSet(path,datatype,dataspace);
+  H5::DataSet dataset = m_fid.createDataSet(path.c_str(),datatype,dataspace);
 
   // store data
   dataset.write(input.data(), H5::PredType::NATIVE_HSIZE);
@@ -727,7 +727,7 @@ void File::write(
   datatype.setOrder(H5T_ORDER_LE);
 
   // add data-set to file
-  H5::DataSet dataset = m_fid.createDataSet(path,datatype,dataspace);
+  H5::DataSet dataset = m_fid.createDataSet(path.c_str(),datatype,dataspace);
 
   // store data
   dataset.write(input.data(), H5::PredType::NATIVE_DOUBLE);
@@ -759,7 +759,7 @@ void File::write(
   datatype.setOrder(H5T_ORDER_LE);
 
   // add data-set to file
-  H5::DataSet dataset = m_fid.createDataSet(path,datatype,dataspace);
+  H5::DataSet dataset = m_fid.createDataSet(path.c_str(),datatype,dataspace);
 
   // store data
   dataset.write(input.data(), H5::PredType::NATIVE_HSIZE);
@@ -791,7 +791,7 @@ void File::write(
   datatype.setOrder(H5T_ORDER_LE);
 
   // add data-set to file
-  H5::DataSet dataset = m_fid.createDataSet(path,datatype,dataspace);
+  H5::DataSet dataset = m_fid.createDataSet(path.c_str(),datatype,dataspace);
 
   // store data
   dataset.write(input.data(), H5::PredType::NATIVE_DOUBLE);
@@ -807,7 +807,7 @@ Eigen::Matrix<size_t, Eigen::Dynamic, 1, Eigen::ColMajor>
 File::read<Eigen::Matrix<size_t, Eigen::Dynamic, 1, Eigen::ColMajor>>(std::string path)
 {
   // open dataset
-  H5::DataSet   dataset    = m_fid.openDataSet(path);
+  H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
   H5::DataSpace dataspace  = dataset.getSpace();
   H5T_class_t   type_class = dataset.getTypeClass();
 
@@ -855,7 +855,7 @@ Eigen::Matrix<double, Eigen::Dynamic, 1, Eigen::ColMajor>
 File::read<Eigen::Matrix<double, Eigen::Dynamic, 1, Eigen::ColMajor>>(std::string path)
 {
   // open dataset
-  H5::DataSet   dataset    = m_fid.openDataSet(path);
+  H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
   H5::DataSpace dataspace  = dataset.getSpace();
   H5T_class_t   type_class = dataset.getTypeClass();
 
@@ -903,7 +903,7 @@ Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
 File::read<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(std::string path)
 {
   // open dataset
-  H5::DataSet   dataset    = m_fid.openDataSet(path);
+  H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
   H5::DataSpace dataspace  = dataset.getSpace();
   H5T_class_t   type_class = dataset.getTypeClass();
 
@@ -952,7 +952,7 @@ Eigen::Matrix<size_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
 File::read<Eigen::Matrix<size_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(std::string path)
 {
   // open dataset
-  H5::DataSet   dataset    = m_fid.openDataSet(path);
+  H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
   H5::DataSpace dataspace  = dataset.getSpace();
   H5T_class_t   type_class = dataset.getTypeClass();
 
@@ -1028,7 +1028,7 @@ void File::write(std::string path, const cppmat::matrix<double> &input)
   datatype.setOrder(H5T_ORDER_LE);
 
   // add data-set to file
-  H5::DataSet dataset = m_fid.createDataSet(path,datatype,dataspace);
+  H5::DataSet dataset = m_fid.createDataSet(path.c_str(),datatype,dataspace);
 
   // store data
   dataset.write(input.data(), H5::PredType::NATIVE_DOUBLE);
@@ -1046,7 +1046,7 @@ template<>
 cppmat::matrix<double> File::read<cppmat::matrix<double>>(std::string path)
 {
   // open dataset
-  H5::DataSet   dataset    = m_fid.openDataSet(path);
+  H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
   H5::DataSpace dataspace  = dataset.getSpace();
   H5T_class_t   type_class = dataset.getTypeClass();
 
@@ -1095,7 +1095,7 @@ template<>
 cppmat::matrix<size_t> File::read<cppmat::matrix<size_t>>(std::string path)
 {
   // open dataset
-  H5::DataSet   dataset    = m_fid.openDataSet(path);
+  H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
   H5::DataSpace dataspace  = dataset.getSpace();
   H5T_class_t   type_class = dataset.getTypeClass();
 
