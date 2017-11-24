@@ -36,33 +36,47 @@ The general structure of a program is
 Function overview
 =================
 
-All functions are member of the ``File`` class:
+All functions are members of the File class:
 
 .. code-block:: cpp
 
   H5p::File("/path/to/file","mode");
 
-``File`` takes two arguments: the file name and the mode. For the latter there are three possibilities:
+The constructor takes two arguments: the file name and the read/write mode. For the latter there are three possibilities:
 
-- ``"w"``: write a new file or overwrite existing file (allows reading).
-- ``"r"``: read from existing file (read-only).
+- ``"w"``: write a new file or overwrite existing file.
+- ``"r"``: read from existing file.
 - ``"a"``: read from and write to an existing file.
+
+In addition it takes one option, the flush settings. The default ``true`` ensures the file to be flushed after each write operation, allowing external reading while the file is open.
 
 Main functions:
 
-* ``void File::write("/path/to/data",...)``: write data (scalar, array, matrix, ...). Can be overloaded with many different types, see :ref:`overloaded_types`.
+* ``void File::write("/path/to/data",...)``
 
-* ``Type File::read<Type>("/path/to/data")``: read data (scalar, array, matrix, ...). Can be templated with many different types, see :ref:`overloaded_types`.
+  Write data (scalar, array, matrix, ...). Can be overloaded with many different types, see :ref:`overloaded_types`.
+
+* ``Type File::read<Type>("/path/to/data")``
+
+  Read data (scalar, array, matrix, ...). Can be templated with many different types, see :ref:`overloaded_types`.
 
 Support functions:
 
-* ``void File::unlink("/path/to/data")``: unlink a path. The dataset is removed when there are no more links to it. Warning: depending on the version of the HDF5 library, the space may not be freed from the file. In that case use ``$ h5repack file1 file2`` to free create a new file without the unused data.
+* ``void File::unlink("/path/to/data")``
 
-* ``bool File::exists("/path/to/data")``: check if a path exists.
+  Unlink a path. The dataset is removed when there are no more links to it. Warning: depending on the version of the HDF5 library, the space may not be freed from the file. In that case use ``$ h5repack file1 file2`` to create a new file without the unused data.
 
-* ``void File::createGroup("/path/to/group")``: create a group. Usually there is no need to call this functions because the ``write`` function automatically creates all parent groups.
+* ``bool File::exists("/path/to/data")``
 
-* ``void File::flush()``: flush all buffers associated with a file to disk. Usually there is no need to call this functions because the ``write`` function automatically flushes the file (this can be suppressed using the option of the ``File`` constructor).
+  Check if a path exists.
+
+* ``void File::createGroup("/path/to/group")``
+
+  Create a group. Usually there is no need to call this function because the ``write`` function automatically creates all parent groups.
+
+* ``void File::flush()``
+
+  Flush all buffers associated with a file to disk. Usually there is no need to call this function because the ``write`` function automatically flushes the file (this can be suppressed using the option of the File constructor).
 
 .. _overloaded_types:
 
@@ -71,12 +85,12 @@ Overloaded types
 
 .. note::
 
-  If yours is not present please submit a pull request.
+  If your type of choice is not present please submit an issue on GitHub, or file a pull request.
 
 std::vector
 -----------
 
-Writing the array (and optionally it's 'dimensions') is done as follows:
+Writing a vector (and optionally its 'dimensions') is done as follows:
 
 .. code-block:: cpp
 
@@ -107,7 +121,7 @@ To read:
 .. code-block:: cpp
 
   #include <iostream>
-  #include <cppmat/cppmat.h>
+  #include <vector>
   #include <HDF5pp.h>
 
   int main()
@@ -139,8 +153,8 @@ Reading with Python does allow direct interpretation of the matrix
 
 [:download:`source: example.py <examples/vector_write/example.py>`]
 
-cppmat multi-dimensional arrays
--------------------------------
+cppmat - multi-dimensional arrays
+---------------------------------
 
 To enable this feature:
 
@@ -201,8 +215,8 @@ To read:
 
 [:download:`source: example.cpp <examples/eigen_cppmat_read/example.cpp>`, :download:`compile: CMakeLists.txt <examples/eigen_cppmat_read/CMakeLists.txt>`]
 
-Eigen matrices
---------------
+Eigen - linear algebra library
+------------------------------
 
 To enable this feature:
 

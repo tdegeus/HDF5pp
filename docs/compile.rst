@@ -10,9 +10,11 @@ Introduction
 
 This module is header only. So one just has to ``#include <HDF5pp/HDF5pp.h>`` (or only one of the submodules) somewhere in the source code, and to tell the compiler where the header-files are. For the latter, several ways are described below.
 
-One should take note that one should still link with the HDF5 libraries. This is briefly described in :ref:`linking`.
+One should still link with the HDF5 libraries. This is briefly described in :ref:`linking`.
 
-Before proceeding, a words about optimization. Of course one should use optimization when compiling the release of the code (``-O2`` or ``-O3``). But it is also a good idea to switch of the assertions in the code (mostly checks on size) that facilitate easy debugging, but do cost time. Therefore, include the flag ``-DNDEBUG``. Note that this is all C++ standard. I.e. it should be no surprise, and it always a good idea to do.
+.. note::
+
+  Before proceeding, some words about optimization. Of course one should use optimization when compiling the release of the code (``-O2`` or ``-O3``). But it is also a good idea to switch of the assertions in the code (mostly checks on size) that facilitate easy debugging, but do cost time. Therefore, include the flag ``-DNDEBUG``. Note that this is all C++ standard. I.e. it should be no surprise, and it always a good idea to do.
 
 Manual compiler flags
 =====================
@@ -30,9 +32,13 @@ Add the following compiler's arguments:
 
   If you want to avoid separately including the header files using a compiler flag, ``git submodule`` is a nice way to go:
 
-  1.  Include this module as a submodule using ``git submodule add https://github.com/tdegeus/HDF5pp.git``.
+  1.  Include this module as a submodule using
 
-  2.  Replace the first line of this example by ``#include "HDF5pp/src/HDF5pp/HDF5pp.h"``.
+      ``git submodule add https://github.com/tdegeus/HDF5pp.git``.
+
+  2.  Replace the first line of this example by
+
+      ``#include "HDF5pp/src/HDF5pp/HDF5pp.h"``.
 
       *If you decide to manually copy the header file, you might need to modify this relative path to your liking.*
 
@@ -46,10 +52,10 @@ Add the following compiler's arguments:
 Install
 -------
 
-To enable (semi-)automatic build, one should 'install' ``HDF5pp`` somewhere.
+To enable (semi-)automatic build, one should 'install' HDF5pp somewhere.
 
-Install system-wide (root)
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+Install system-wide (depends on your privileges)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 1.  Proceed to a (temporary) build directory. For example
 
@@ -57,7 +63,7 @@ Install system-wide (root)
 
       $ cd /path/to/HDF5pp/src/build
 
-2.  'Build' ``HDF5pp``
+2.  'Build' HDF5pp. For the path above,
 
     .. code-block:: bash
 
@@ -75,7 +81,7 @@ Install in custom location (user)
 
       $ cd /path/to/HDF5pp/src/build
 
-2.  'Build' ``HDF5pp``, to install it in a custom location
+2.  'Build' HDF5pp, to install it in a custom location. For the path above,
 
     .. code-block:: bash
 
@@ -154,10 +160,14 @@ The following basic structure of ``CMakeLists.txt`` can be used:
   # define a project name
   project(example)
 
-  # set optimization level
-  set(CMAKE_BUILD_TYPE Release)
+  # define empty list of libraries to link
+  set(PROJECT_LINKS "")
 
-  # set C++ standard
+  # set optimization level and switch of assertions (set to your liking)
+  set(CMAKE_BUILD_TYPE Release)
+  add_definitions(-DNDEBUG)
+
+  # enforce the C++ standard
   set(CMAKE_CXX_STANDARD 14)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -167,7 +177,7 @@ The following basic structure of ``CMakeLists.txt`` can be used:
   # find HDF5
   find_package(HDF5 COMPONENTS CXX REQUIRED)
   include_directories(${HDF5_INCLUDE_DIRS})
-  set(HDF5_LIBS ${HDF5_LIBS} ${HDF5_LIBRARIES})
+  set(PROJECT_LINKS ${HDF5_LIBS} ${HDF5_LIBRARIES})
 
   # find HDF5pp
   pkg_check_modules(HDF5PP REQUIRED HDF5pp)
@@ -177,5 +187,5 @@ The following basic structure of ``CMakeLists.txt`` can be used:
   add_executable(${PROJECT_NAME} example.cpp)
 
   # link libraries
-  target_link_libraries(${PROJECT_NAME} ${HDF5_LIBS})
+  target_link_libraries(${PROJECT_NAME} ${PROJECT_LINKS})
 

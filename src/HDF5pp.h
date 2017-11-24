@@ -35,7 +35,7 @@
 
 #define HDF5PP_WORLD_VERSION 0
 #define HDF5PP_MAJOR_VERSION 0
-#define HDF5PP_MINOR_VERSION 3
+#define HDF5PP_MINOR_VERSION 4
 
 #define HDF5PP_VERSION_AT_LEAST(x,y,z) \
   (HDF5PP_WORLD_VERSION>x || (HDF5PP_WORLD_VERSION>=x && \
@@ -73,13 +73,14 @@ public:
   // -----------------
 
   // flush all buffers associated with a file to disk
+  // NB if 'autoflush == true' there is no need to call this function
   void flush();
 
   // check if a path exists (is a group or a dataset)
   bool exists(std::string path);
 
   // create a group based on a specified path
-  // NB "write" automatically does this, there is usually no need to call this function
+  // NB there is usually no need to call this function, it is called by write
   void createGroup(std::string path);
 
   // unlink a path
