@@ -252,16 +252,13 @@ inline std::vector<size_t> File::shape(std::string path)
   // - read rank (a.k.a number of dimensions)
   int rank = dataspace.getSimpleExtentNdims();
   // - allocate as HDF5-type
-  hsize_t * dimsf = (hsize_t*)malloc(rank);
+  std::vector<hsize_t> dimsf(rank);
   // - allocate as vector
   std::vector<size_t> shape(rank);
   // - read
-  dataspace.getSimpleExtentDims(dimsf, NULL);
+  dataspace.getSimpleExtentDims(dimsf.data(), NULL);
   // - convert to vector
   for ( int i = 0 ; i < rank ; ++i ) shape[i] = static_cast<size_t>(dimsf[i]);
-
-  // free memory
-  free(dimsf);
 
   // return output
   return shape;
@@ -282,14 +279,11 @@ inline size_t File::shape(std::string path, size_t i)
   if ( rank < static_cast<int>(i) )
     throw std::runtime_error("Cannot read, rank of data lower that requested");
   // - allocate as HDF5-type
-  hsize_t * dimsf = (hsize_t*)malloc(rank);
+  std::vector<hsize_t> dimsf(rank);
   // - read
-  dataspace.getSimpleExtentDims(dimsf, NULL);
+  dataspace.getSimpleExtentDims(dimsf.data(), NULL);
   // - get output
   size_t shape = static_cast<size_t>(dimsf[i]);
-
-  // free memory
-  free(dimsf);
 
   // return output
   return shape;
@@ -305,10 +299,11 @@ inline void File::write(std::string path, size_t input)
   createGroup(path);
 
   // pseudo-shape of the array
-  hsize_t dimsf[1]; dimsf[0] = 1;
+  std::vector<hsize_t> dimsf(1);
+  dimsf[0] = 1;
 
   // define storage shape / type
-  H5::DataSpace dataspace(1,dimsf);
+  H5::DataSpace dataspace(1,dimsf.data());
   H5::IntType   datatype(H5::PredType::NATIVE_HSIZE);
 
   // use little endian storage
@@ -332,10 +327,11 @@ inline void File::write(std::string path, float input)
   createGroup(path);
 
   // pseudo-shape of the array
-  hsize_t dimsf[1]; dimsf[0] = 1;
+  std::vector<hsize_t> dimsf(1);
+  dimsf[0] = 1;
 
   // define storage shape / type
-  H5::DataSpace dataspace(1,dimsf);
+  H5::DataSpace dataspace(1,dimsf.data());
   H5::FloatType datatype(H5::PredType::NATIVE_FLOAT);
 
   // use little endian storage
@@ -359,10 +355,11 @@ inline void File::write(std::string path, double input)
   createGroup(path);
 
   // pseudo-shape of the array
-  hsize_t dimsf[1]; dimsf[0] = 1;
+  std::vector<hsize_t> dimsf(1);
+  dimsf[0] = 1;
 
   // define storage shape / type
-  H5::DataSpace dataspace(1,dimsf);
+  H5::DataSpace dataspace(1,dimsf.data());
   H5::FloatType datatype(H5::PredType::NATIVE_DOUBLE);
 
   // use little endian storage
@@ -404,18 +401,19 @@ inline size_t File::read<size_t>(std::string path)
   // read rank (a.k.a number of dimensions)
   int rank = dataspace.getSimpleExtentNdims();
 
+  // allocate HDF5-type
+  std::vector<hsize_t> dimsf;
+
   // check the size (cannot be >1)
   if ( rank != 0 )
   {
     // - allocate as HDF5-type
-    hsize_t * dimsf = (hsize_t*)malloc(rank);
+    dimsf.resize(rank);
     // - read
-    dataspace.getSimpleExtentDims(dimsf, NULL);
+    dataspace.getSimpleExtentDims(dimsf.data(), NULL);
     // - total size
     size_t size = 0;
     for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(dimsf[i]);
-    // - free memory
-    free(dimsf);
     // - check size
     if ( size > 1 )
       throw std::runtime_error("Unable to read, data is array");
@@ -457,18 +455,19 @@ inline double File::read<double>(std::string path)
   // read rank (a.k.a number of dimensions)
   int rank = dataspace.getSimpleExtentNdims();
 
+  // allocate HDF5-type
+  std::vector<hsize_t> dimsf;
+
   // check the size (cannot be >1)
   if ( rank != 0 )
   {
     // - allocate as HDF5-type
-    hsize_t * dimsf = (hsize_t*)malloc(rank);
+    dimsf.resize(rank);
     // - read
-    dataspace.getSimpleExtentDims(dimsf, NULL);
+    dataspace.getSimpleExtentDims(dimsf.data(), NULL);
     // - total size
     size_t size = 0;
     for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(dimsf[i]);
-    // - free memory
-    free(dimsf);
     // - check size
     if ( size > 1 )
       throw std::runtime_error("Unable to read, data is array");
@@ -507,13 +506,13 @@ inline void File::write(std::string path, const std::vector<float> &input, const
   // - get the rank
   size_t rank = dims.size();
   // - allocate as HDF5-type
-  hsize_t * dimsf = (hsize_t*)malloc(rank);
+  std::vector<hsize_t> dimsf(rank);
   // - copy
   for ( size_t i = 0 ; i < rank ; ++i )
     dimsf[i] = dims[i];
 
   // define storage shape / type
-  H5::DataSpace dataspace(rank,dimsf);
+  H5::DataSpace dataspace(rank,dimsf.data());
   H5::FloatType datatype(H5::PredType::NATIVE_FLOAT);
 
   // use little endian storage
@@ -524,9 +523,6 @@ inline void File::write(std::string path, const std::vector<float> &input, const
 
   // store data
   dataset.write(input.data(), H5::PredType::NATIVE_FLOAT);
-
-  // free memory
-  free(dimsf);
 
   // flush the file if so requested
   if ( m_autoflush ) flush();
@@ -553,13 +549,13 @@ inline void File::write(std::string path, const std::vector<double> &input, cons
   // - get the rank
   size_t rank = dims.size();
   // - allocate as HDF5-type
-  hsize_t * dimsf = (hsize_t*)malloc(rank);
+  std::vector<hsize_t> dimsf(rank);
   // - copy
   for ( size_t i = 0 ; i < rank ; ++i )
     dimsf[i] = dims[i];
 
   // define storage shape / type
-  H5::DataSpace dataspace(rank,dimsf);
+  H5::DataSpace dataspace(rank,dimsf.data());
   H5::FloatType datatype(H5::PredType::NATIVE_DOUBLE);
 
   // use little endian storage
@@ -570,9 +566,6 @@ inline void File::write(std::string path, const std::vector<double> &input, cons
 
   // store data
   dataset.write(input.data(), H5::PredType::NATIVE_DOUBLE);
-
-  // free memory
-  free(dimsf);
 
   // flush the file if so requested
   if ( m_autoflush ) flush();
@@ -605,9 +598,9 @@ inline std::vector<double> File::read<std::vector<double>>(std::string path)
   // - read rank (a.k.a number of dimensions)
   int rank = dataspace.getSimpleExtentNdims();
   // - allocate as HDF5-type
-  hsize_t * dimsf = (hsize_t*)malloc(rank);
+  std::vector<hsize_t> dimsf(rank);
   // - read
-  dataspace.getSimpleExtentDims(dimsf, NULL);
+  dataspace.getSimpleExtentDims(dimsf.data(), NULL);
   // - total size
   size_t size = 0;
   for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(dimsf[i]);
@@ -617,9 +610,6 @@ inline std::vector<double> File::read<std::vector<double>>(std::string path)
 
   // read data
   dataset.read(const_cast<double*>(data.data()), H5::PredType::NATIVE_DOUBLE);
-
-  // - free memory
-  free(dimsf);
 
   // return output
   return data;
@@ -652,9 +642,9 @@ inline std::vector<size_t> File::read<std::vector<size_t>>(std::string path)
   // - read rank (a.k.a number of dimensions)
   int rank = dataspace.getSimpleExtentNdims();
   // - allocate as HDF5-type
-  hsize_t * dimsf = (hsize_t*)malloc(rank);
+  std::vector<hsize_t> dimsf(rank);
   // - read
-  dataspace.getSimpleExtentDims(dimsf, NULL);
+  dataspace.getSimpleExtentDims(dimsf.data(), NULL);
   // - total size
   size_t size = 0;
   for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(dimsf[i]);
@@ -664,9 +654,6 @@ inline std::vector<size_t> File::read<std::vector<size_t>>(std::string path)
 
   // read data
   dataset.read(const_cast<size_t*>(data.data()), H5::PredType::NATIVE_HSIZE);
-
-  // free memory
-  free(dimsf);
 
   // return output
   return data;
@@ -689,11 +676,11 @@ inline void File::write(
   createGroup(path);
 
   // shape == size (1-d)
-  hsize_t dimsf[1];
+  std::vector<hsize_t> dimsf(1);
   dimsf[0] = input.size();
 
   // define storage shape / type
-  H5::DataSpace dataspace(1,dimsf);
+  H5::DataSpace dataspace(1,dimsf.data());
   H5::IntType   datatype(H5::PredType::NATIVE_HSIZE);
 
   // use little endian storage
@@ -720,11 +707,11 @@ inline void File::write(
   createGroup(path);
 
   // shape == size (1-d)
-  hsize_t dimsf[1];
+  std::vector<hsize_t> dimsf(1);
   dimsf[0] = input.size();
 
   // define storage shape / type
-  H5::DataSpace dataspace(1,dimsf);
+  H5::DataSpace dataspace(1,dimsf.data());
   H5::FloatType datatype(H5::PredType::NATIVE_DOUBLE);
 
   // use little endian storage
@@ -751,12 +738,12 @@ inline void File::write(
   createGroup(path);
 
   // shape of the array (rank == 2)
-  hsize_t dimsf[2];
+  std::vector<hsize_t> dimsf(2);
   dimsf[0] = input.rows();
   dimsf[1] = input.cols();
 
   // define storage shape / type
-  H5::DataSpace dataspace(2,dimsf);
+  H5::DataSpace dataspace(2,dimsf.data());
   H5::IntType   datatype(H5::PredType::NATIVE_HSIZE);
 
   // use little endian storage
@@ -783,12 +770,12 @@ inline void File::write(
   createGroup(path);
 
   // shape of the array (rank == 2)
-  hsize_t dimsf[2];
+  std::vector<hsize_t> dimsf(2);
   dimsf[0] = input.rows();
   dimsf[1] = input.cols();
 
   // define storage shape / type
-  H5::DataSpace dataspace(2,dimsf);
+  H5::DataSpace dataspace(2,dimsf.data());
   H5::FloatType datatype(H5::PredType::NATIVE_DOUBLE);
 
   // use little endian storage
@@ -832,9 +819,9 @@ File::read<Eigen::Matrix<size_t, Eigen::Dynamic, 1, Eigen::ColMajor>>(std::strin
   // - read rank (a.k.a number of dimensions)
   int rank = dataspace.getSimpleExtentNdims();
   // - allocate as HDF5-type
-  hsize_t * dimsf = (hsize_t*)malloc(rank);
+  std::vector<hsize_t> dimsf(rank);
   // - read
-  dataspace.getSimpleExtentDims(dimsf, NULL);
+  dataspace.getSimpleExtentDims(dimsf.data(), NULL);
   // - total size
   size_t size = 0;
   for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(dimsf[i]);
@@ -844,9 +831,6 @@ File::read<Eigen::Matrix<size_t, Eigen::Dynamic, 1, Eigen::ColMajor>>(std::strin
 
   // read data
   dataset.read(data.data(), H5::PredType::NATIVE_HSIZE);
-
-  // free memory
-  free(dimsf);
 
   // return output
   return data;
@@ -880,9 +864,9 @@ File::read<Eigen::Matrix<double, Eigen::Dynamic, 1, Eigen::ColMajor>>(std::strin
   // - read rank (a.k.a number of dimensions)
   int rank = dataspace.getSimpleExtentNdims();
   // - allocate as HDF5-type
-  hsize_t * dimsf = (hsize_t*)malloc(rank);
+  std::vector<hsize_t> dimsf(rank);
   // - read
-  dataspace.getSimpleExtentDims(dimsf, NULL);
+  dataspace.getSimpleExtentDims(dimsf.data(), NULL);
   // - total size
   size_t size = 0;
   for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(dimsf[i]);
@@ -892,9 +876,6 @@ File::read<Eigen::Matrix<double, Eigen::Dynamic, 1, Eigen::ColMajor>>(std::strin
 
   // read data
   dataset.read(data.data(), H5::PredType::NATIVE_DOUBLE);
-
-  // free memory
-  free(dimsf);
 
   // return output
   return data;
@@ -932,18 +913,15 @@ File::read<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor
 
   // get the size in each direction
   // - allocate as HDF5-type
-  hsize_t * dimsf = (hsize_t*)malloc(rank);
+  std::vector<hsize_t> dimsf(rank);
   // - read
-  dataspace.getSimpleExtentDims(dimsf, NULL);
+  dataspace.getSimpleExtentDims(dimsf.data(), NULL);
 
   // allocate output
   Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> data(dimsf[0],dimsf[1]);
 
   // read data
   dataset.read(data.data(), H5::PredType::NATIVE_DOUBLE);
-
-  // free memory
-  free(dimsf);
 
   // return output
   return data;
@@ -981,18 +959,15 @@ File::read<Eigen::Matrix<size_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor
 
   // get the size in each direction
   // - allocate as HDF5-type
-  hsize_t * dimsf = (hsize_t*)malloc(rank);
+  std::vector<hsize_t> dimsf(rank);
   // - read
-  dataspace.getSimpleExtentDims(dimsf, NULL);
+  dataspace.getSimpleExtentDims(dimsf.data(), NULL);
 
   // allocate output
   Eigen::Matrix<size_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> data(dimsf[0],dimsf[1]);
 
   // read data
   dataset.read(data.data(), H5::PredType::NATIVE_HSIZE);
-
-  // free memory
-  free(dimsf);
 
   // return output
   return data;
@@ -1019,13 +994,13 @@ inline void File::write(std::string path, const cppmat::matrix<double> &input)
   // - get the number of dimensions
   size_t rank = input.ndim();
   // - allocate as HDF5-type
-  hsize_t * dimsf = (hsize_t*)malloc(rank);
+  std::vector<hsize_t> dimsf(rank);
   // - store shape in each direction
   for ( size_t i = 0 ; i < rank ; ++i )
     dimsf[i] = input.shape(i);
 
   // define storage shape / type
-  H5::DataSpace dataspace(rank,dimsf);
+  H5::DataSpace dataspace(rank,dimsf.data());
   H5::FloatType datatype(H5::PredType::NATIVE_DOUBLE);
 
   // use little endian storage
@@ -1036,9 +1011,6 @@ inline void File::write(std::string path, const cppmat::matrix<double> &input)
 
   // store data
   dataset.write(input.data(), H5::PredType::NATIVE_DOUBLE);
-
-  // free memory
-  free(dimsf);
 
   // flush the file if so requested
   if ( m_autoflush ) flush();
@@ -1071,11 +1043,11 @@ inline cppmat::matrix<double> File::read<cppmat::matrix<double>>(std::string pat
   // - read rank (a.k.a number of dimensions)
   int rank = dataspace.getSimpleExtentNdims();
   // - allocate as HDF5-type
-  hsize_t * dimsf = (hsize_t*)malloc(rank);
+  std::vector<hsize_t> dimsf(rank);
   // - allocate
   std::vector<size_t> shape(rank);
   // - read
-  dataspace.getSimpleExtentDims(dimsf, NULL);
+  dataspace.getSimpleExtentDims(dimsf.data(), NULL);
   // - convert to vector
   for ( int i = 0 ; i < rank ; ++i )
     shape[i] = static_cast<size_t>(dimsf[i]);
@@ -1085,9 +1057,6 @@ inline cppmat::matrix<double> File::read<cppmat::matrix<double>>(std::string pat
 
   // read data
   dataset.read(data.data(), H5::PredType::NATIVE_DOUBLE);
-
-  // - free memory
-  free(dimsf);
 
   // return output
   return data;
@@ -1120,11 +1089,11 @@ inline cppmat::matrix<size_t> File::read<cppmat::matrix<size_t>>(std::string pat
   // - read rank (a.k.a number of dimensions)
   int rank = dataspace.getSimpleExtentNdims();
   // - allocate as HDF5-type
-  hsize_t * dimsf = (hsize_t*)malloc(rank);
+  std::vector<hsize_t> dimsf(rank);
   // - allocate
   std::vector<size_t> shape(rank);
   // - read
-  dataspace.getSimpleExtentDims(dimsf, NULL);
+  dataspace.getSimpleExtentDims(dimsf.data(), NULL);
   // - convert to vector
   for ( int i = 0 ; i < rank ; ++i )
     shape[i] = static_cast<size_t>(dimsf[i]);
@@ -1134,9 +1103,6 @@ inline cppmat::matrix<size_t> File::read<cppmat::matrix<size_t>>(std::string pat
 
   // read data
   dataset.read(data.data(), H5::PredType::NATIVE_HSIZE);
-
-  // free memory
-  free(dimsf);
 
   // return output
   return data;
