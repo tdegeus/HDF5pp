@@ -161,15 +161,15 @@ The following basic structure of ``CMakeLists.txt`` can be used:
   project(example)
 
   # define empty list of libraries to link
-  set(PROJECT_LINKS "")
-
-  # set optimization level and switch of assertions (set to your liking)
-  set(CMAKE_BUILD_TYPE Release)
-  add_definitions(-DNDEBUG)
+  set(PROJECT_LIBS "")
 
   # enforce the C++ standard
   set(CMAKE_CXX_STANDARD 14)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+  # set optimization level and switch of assertions (set to your liking)
+  set(CMAKE_BUILD_TYPE Release)
+  add_definitions(-DNDEBUG)
 
   # load pkg-config
   find_package(PkgConfig)
@@ -177,15 +177,15 @@ The following basic structure of ``CMakeLists.txt`` can be used:
   # find HDF5
   find_package(HDF5 COMPONENTS CXX REQUIRED)
   include_directories(${HDF5_INCLUDE_DIRS})
-  set(PROJECT_LINKS ${HDF5_LIBS} ${HDF5_LIBRARIES})
+  set(PROJECT_LIBS ${HDF5_LIBS} ${HDF5_LIBRARIES})
 
   # find HDF5pp
   pkg_check_modules(HDF5PP REQUIRED HDF5pp)
   include_directories(${HDF5PP_INCLUDE_DIRS})
 
-  # add executable
+  # create executable
   add_executable(${PROJECT_NAME} example.cpp)
 
   # link libraries
-  target_link_libraries(${PROJECT_NAME} ${PROJECT_LINKS})
+  target_link_libraries(${PROJECT_NAME} ${PROJECT_LIBS})
 

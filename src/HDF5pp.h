@@ -10,6 +10,7 @@
 // -------------------------------------------------------------------------------------------------
 
 // basic include
+#include <fstream>
 #include "H5Cpp.h"
 #include <vector>
 
@@ -35,7 +36,7 @@
 
 #define HDF5PP_WORLD_VERSION 0
 #define HDF5PP_MAJOR_VERSION 0
-#define HDF5PP_MINOR_VERSION 4
+#define HDF5PP_MINOR_VERSION 5
 
 #define HDF5PP_VERSION_AT_LEAST(x,y,z) \
   (HDF5PP_WORLD_VERSION>x || (HDF5PP_WORLD_VERSION>=x && \
@@ -73,14 +74,14 @@ public:
   // -----------------
 
   // flush all buffers associated with a file to disk
-  // NB if 'autoflush == true' there is no need to call this function
+  // NB if 'autoflush==true' you don't need to call this function, all write functions will call it
   void flush();
 
   // check if a path exists (is a group or a dataset)
   bool exists(std::string path);
 
   // create a group based on a specified path
-  // NB there is usually no need to call this function, it is called by write
+  // NB there is usually no need to call this function, it is called by all write functions
   void createGroup(std::string path);
 
   // unlink a path
@@ -106,13 +107,18 @@ public:
   void write(std::string path, float  data);
   void write(std::string path, double data);
 
+  // store std::string
+  // -----------------
+
+  void write(std::string path, std::string data);
+
   // store std::vector
   // -----------------
 
   void write(std::string path, const std::vector<float>  &input, const std::vector<size_t> &shape={});
   void write(std::string path, const std::vector<double> &input, const std::vector<size_t> &shape={});
 
-  // store Eigen array
+  // store Eigen-array
   // -----------------
 
   #ifdef HDF5PP_EIGEN
@@ -139,7 +145,7 @@ public:
 
   #endif
 
-  // store to / read from cppmat array
+  // store to / read from cppmat-array
   // ---------------------------------
 
   #ifdef HDF5PP_CPPMAT
@@ -158,11 +164,20 @@ inline File::File(std::string name, std::string mode, bool autoflush)
   // copy filename
   m_fname = name;
 
+  // check if file exists, otherwise set write mode to "w"
+  if ( mode == "a" or mode == "r+" )
+  {
+    // - find file
+    std::ifstream infile(m_fname);
+    // - change write mode if file does not exist
+    if ( ! infile.good() ) mode = "w";
+  }
+
   // open file
-  if      ( mode == "w" ) m_fid = H5::H5File(m_fname.c_str(),H5F_ACC_TRUNC );
-  else if ( mode == "a" ) m_fid = H5::H5File(m_fname.c_str(),H5F_ACC_RDWR  );
-  else if ( mode == "r" ) m_fid = H5::H5File(m_fname.c_str(),H5F_ACC_RDONLY);
-  else    throw std::runtime_error("HDF5pp: unknown mode to open file");
+  if      ( mode == "r"         ) m_fid = H5::H5File(m_fname.c_str(),H5F_ACC_RDONLY);
+  else if ( mode == "w"         ) m_fid = H5::H5File(m_fname.c_str(),H5F_ACC_TRUNC );
+  else if ( mode == "a" or "r+" ) m_fid = H5::H5File(m_fname.c_str(),H5F_ACC_RDWR  );
+  else throw std::runtime_error("HDF5pp: unknown mode to open file");
 
   // store flush settings
   m_autoflush = autoflush;
@@ -481,6 +496,46 @@ inline double File::read<double>(std::string path)
   dataset.read(&out, H5::PredType::NATIVE_DOUBLE);
 
   // return output
+  return out;
+}
+
+// =================================================================================================
+// std::string
+// =================================================================================================
+
+inline void File::write(std::string path, std::string input)
+{
+  // create group(s) if needed
+  createGroup(path);
+
+
+  H5::StrType   datatype(0, H5T_VARIABLE);
+  H5::DataSpace dataspace(H5S_SCALAR);
+
+  H5::DataSet dataset = m_fid.createDataSet(path.c_str(),datatype,dataspace);
+
+  dataset.write(input, datatype, dataspace);
+
+  // flush the file if so requested
+  if ( m_autoflush ) flush();
+}
+
+// -------------------------------------------------------------------------------------------------
+
+template<>
+inline std::string File::read<std::string>(std::string path)
+{
+  // open dataset, get data-type
+  H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
+  H5::DataSpace dataspace  = dataset.getSpace();
+  H5::StrType   datatype   = dataset.getStrType();
+
+  // allocate output
+  std::string out;
+
+  // read output
+  dataset.read(out, datatype, dataspace);
+
   return out;
 }
 

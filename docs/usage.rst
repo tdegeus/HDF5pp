@@ -46,7 +46,7 @@ The constructor takes two arguments: the file name and the read/write mode. For 
 
 - ``"w"``: write a new file or overwrite existing file.
 - ``"r"``: read from existing file.
-- ``"a"``: read from and write to an existing file.
+- ``"r+"`` or ``"a"``: read from and write to an existing file.
 
 In addition it takes one option, the flush settings. The default ``true`` ensures the file to be flushed after each write operation, allowing external reading while the file is open.
 
@@ -86,6 +86,52 @@ Overloaded types
 .. note::
 
   If your type of choice is not present please submit an issue on GitHub, or file a pull request.
+
+Basic types (size_t, double, ...)
+---------------------------------
+
+The examples below feature a ``double``, which may be replaced with:
+
+* ``size_t``
+* ``float``
+* ``double``
+* ``std::string``
+
+Writing is done as follows:
+
+.. code-block:: cpp
+
+  #include <iostream>
+  #include <vector>
+  #include <HDF5pp.h>
+
+  int main()
+  {
+    double data = 10.;
+
+    H5p::File file = H5p::File("example.hdf5","w");
+
+    file.write("/path/to/data",data);
+
+    return 0;
+  }
+
+To read:
+
+.. code-block:: cpp
+
+  #include <iostream>
+  #include <vector>
+  #include <HDF5pp.h>
+
+  int main()
+  {
+    H5p::File file = H5p::File("example.h5","r");
+
+    double data = file.read<double>("/data");
+
+    return 0;
+  }
 
 std::vector
 -----------
