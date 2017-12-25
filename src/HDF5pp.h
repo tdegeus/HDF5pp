@@ -426,53 +426,106 @@ inline void File::write(std::string path, double input)
 template<>
 inline bool File::read<bool>(std::string path)
 {
-  // open dataset
-  H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
-  H5::DataSpace dataspace  = dataset.getSpace();
-  H5T_class_t   type_class = dataset.getTypeClass();
-
-  // check data type
-  if ( type_class != H5T_INTEGER )
-    throw std::runtime_error("Unable to read, incorrect data-type");
-
-  // check precision
-  // - get storage type
-  H5::IntType datatype = dataset.getIntType();
-  // - get number of bytes
-  size_t precision = datatype.getSize();
-  // - check precision
-  if ( precision != sizeof(int) )
-    throw std::runtime_error("Unable to read, incorrect precision");
-
-  // read rank (a.k.a number of dimensions)
-  int rank = dataspace.getSimpleExtentNdims();
-
-  // allocate HDF5-type
-  std::vector<hsize_t> dimsf;
-
-  // check the size (cannot be >1)
-  if ( rank != 0 )
+  try
   {
-    // - allocate as HDF5-type
-    dimsf.resize(rank);
-    // - read
-    dataspace.getSimpleExtentDims(dimsf.data(), NULL);
-    // - total size
-    size_t size = 0;
-    for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(dimsf[i]);
-    // - check size
-    if ( size > 1 )
-      throw std::runtime_error("Unable to read, data is array");
+    // open dataset
+    H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
+    H5::DataSpace dataspace  = dataset.getSpace();
+    H5T_class_t   type_class = dataset.getTypeClass();
+
+    // check data type
+    if ( type_class != H5T_INTEGER )
+      throw std::runtime_error("Unable to read, incorrect data-type");
+
+    // check precision
+    // - get storage type
+    H5::IntType datatype = dataset.getIntType();
+    // - get number of bytes
+    size_t precision = datatype.getSize();
+    // - check precision
+    if ( precision != sizeof(int) )
+      throw std::runtime_error("Unable to read, incorrect precision");
+
+    // read rank (a.k.a number of dimensions)
+    int rank = dataspace.getSimpleExtentNdims();
+
+    // allocate HDF5-type
+    std::vector<hsize_t> dimsf;
+
+    // check the size (cannot be >1)
+    if ( rank != 0 )
+    {
+      // - allocate as HDF5-type
+      dimsf.resize(rank);
+      // - read
+      dataspace.getSimpleExtentDims(dimsf.data(), NULL);
+      // - total size
+      size_t size = 0;
+      for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(dimsf[i]);
+      // - check size
+      if ( size > 1 )
+        throw std::runtime_error("Unable to read, data is array");
+    }
+
+    // allocate output
+    int out;
+
+    // read output
+    dataset.read(&out, H5::PredType::NATIVE_INT);
+
+    // return output
+    return static_cast<bool>(out);
   }
+  catch (...)
+  {
+    // open dataset
+    H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
+    H5::DataSpace dataspace  = dataset.getSpace();
+    H5T_class_t   type_class = dataset.getTypeClass();
 
-  // allocate output
-  int out;
+    // check data type
+    if ( type_class != H5T_INTEGER )
+      throw std::runtime_error("Unable to read, incorrect data-type");
 
-  // read output
-  dataset.read(&out, H5::PredType::NATIVE_INT);
+    // check precision
+    // - get storage type
+    H5::IntType datatype = dataset.getIntType();
+    // - get number of bytes
+    size_t precision = datatype.getSize();
+    // - check precision
+    if ( precision != sizeof(size_t) )
+      throw std::runtime_error("Unable to read, incorrect precision");
 
-  // return output
-  return static_cast<bool>(out);
+    // read rank (a.k.a number of dimensions)
+    int rank = dataspace.getSimpleExtentNdims();
+
+    // allocate HDF5-type
+    std::vector<hsize_t> dimsf;
+
+    // check the size (cannot be >1)
+    if ( rank != 0 )
+    {
+      // - allocate as HDF5-type
+      dimsf.resize(rank);
+      // - read
+      dataspace.getSimpleExtentDims(dimsf.data(), NULL);
+      // - total size
+      size_t size = 0;
+      for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(dimsf[i]);
+      // - check size
+      if ( size > 1 )
+        throw std::runtime_error("Unable to read, data is array");
+    }
+
+    // allocate output
+    size_t out;
+
+    // read output
+    dataset.read(&out, H5::PredType::NATIVE_HSIZE);
+
+    // return output
+    return static_cast<bool>(out);
+  }
 }
 
 // -------------------------------------------------------------------------------------------------
