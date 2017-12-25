@@ -103,6 +103,7 @@ public:
   // store scalar
   // ------------
 
+  void write(std::string path, bool   data);
   void write(std::string path, size_t data);
   void write(std::string path, float  data);
   void write(std::string path, double data);
@@ -309,6 +310,35 @@ inline size_t File::shape(std::string path, size_t i)
 // scalar
 // =================================================================================================
 
+inline void File::write(std::string path, bool input)
+{
+  // create group(s) if needed
+  createGroup(path);
+
+  // pseudo-shape of the array
+  std::vector<hsize_t> dimsf(1);
+  dimsf[0] = 1;
+
+  // define storage shape / type
+  H5::DataSpace dataspace(1,dimsf.data());
+  H5::IntType   datatype(H5::PredType::NATIVE_INT);
+
+  // use little endian storage
+  datatype.setOrder(H5T_ORDER_LE);
+
+  // add data-set to file
+  H5::DataSet dataset = m_fid.createDataSet(path.c_str(),datatype,dataspace);
+
+  // store data
+  int tmp = static_cast<int>(input);
+  dataset.write(&tmp, H5::PredType::NATIVE_INT);
+
+  // flush the file if so requested
+  if ( m_autoflush ) flush();
+}
+
+// -------------------------------------------------------------------------------------------------
+
 inline void File::write(std::string path, size_t input)
 {
   // create group(s) if needed
@@ -389,6 +419,60 @@ inline void File::write(std::string path, double input)
 
   // flush the file if so requested
   if ( m_autoflush ) flush();
+}
+
+// -------------------------------------------------------------------------------------------------
+
+template<>
+inline bool File::read<bool>(std::string path)
+{
+  // open dataset
+  H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
+  H5::DataSpace dataspace  = dataset.getSpace();
+  H5T_class_t   type_class = dataset.getTypeClass();
+
+  // check data type
+  if ( type_class != H5T_INTEGER )
+    throw std::runtime_error("Unable to read, incorrect data-type");
+
+  // check precision
+  // - get storage type
+  H5::IntType datatype = dataset.getIntType();
+  // - get number of bytes
+  size_t precision = datatype.getSize();
+  // - check precision
+  if ( precision != sizeof(int) )
+    throw std::runtime_error("Unable to read, incorrect precision");
+
+  // read rank (a.k.a number of dimensions)
+  int rank = dataspace.getSimpleExtentNdims();
+
+  // allocate HDF5-type
+  std::vector<hsize_t> dimsf;
+
+  // check the size (cannot be >1)
+  if ( rank != 0 )
+  {
+    // - allocate as HDF5-type
+    dimsf.resize(rank);
+    // - read
+    dataspace.getSimpleExtentDims(dimsf.data(), NULL);
+    // - total size
+    size_t size = 0;
+    for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(dimsf[i]);
+    // - check size
+    if ( size > 1 )
+      throw std::runtime_error("Unable to read, data is array");
+  }
+
+  // allocate output
+  int out;
+
+  // read output
+  dataset.read(&out, H5::PredType::NATIVE_INT);
+
+  // return output
+  return static_cast<bool>(out);
 }
 
 // -------------------------------------------------------------------------------------------------
