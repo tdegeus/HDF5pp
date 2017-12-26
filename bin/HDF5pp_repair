@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+'''HDF5pp_repair
+
+  Extract readable data from a HDF5-file and copy it to a new HDF5-file.
+
+Usage:
+  HDF5pp_repair [options] <old.hdf5> <new.hdf5>
+
+Arguments:
+  <old.hdf5>          Old HDF5-file, containing corrupted data.
+  <new.hdf5>          New HDF5-file, which will contain as much as possible data from <old.hdf5>.
+
+Options:
+  -h  --help          Show help.
+      --version       Show version.
+'''
+
+import numpy as np
+import h5py, docopt
+
+# --------------------------------------------------------------------------------------------------
+
+def getdatasets(key,archive):
+
+  if key[-1] != '/': key += '/'
+
+  out = []
+
+  for name in archive[key]:
+
+    path = key + name
+
+    if isinstance(archive[path], h5py.Dataset):
+      out += [path]
+    else:
+      try   : out += getdatasets(path,archive)
+      except: pass
+
+  return out
+
+# --------------------------------------------------------------------------------------------------
+
+# parse command-line options
+args = docopt.docopt(__doc__,version='0.0.2')
+
+# open HDF5-files
+data     = h5py.File(args['<old.hdf5>'],'r')
+new_data = h5py.File(args['<new.hdf5>'],'w')
+
+# read as much datasets as possible from the old HDF5-file
+datasets = getdatasets('/',data)
+
+# get the group-names from the lists of datasets
+groups = list(set([i[::-1].split('/',1)[1][::-1] for i in datasets]))
+groups = [i for i in groups if len(i)>0]
+
+# sort groups based on depth
+idx    = np.argsort(np.array([len(i.split('/')) for i in groups]))
+groups = [groups[i] for i in idx]
+
+# create all groups that contain dataset that will be copied
+for group in groups:
+  new_data.create_group(group)
+
+# copy datasets
+for path in datasets:
+
+  # - check path
+  if path not in data: continue
+
+  # - try reading
+  try   : data[path]
+  except: continue
+
+  # - get group name
+  group = path[::-1].split('/',1)[1][::-1]
+
+  # - minimum group name
+  if len(group) == 0: group = '/'
+
+  # - copy data
+  data.copy(path, new_data[group])
+
+
