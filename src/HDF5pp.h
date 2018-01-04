@@ -94,6 +94,9 @@ public:
   // read the shape in a specific dimension of the data-matrix
   size_t shape(std::string path, size_t i);
 
+  // read the size (total number of entries)
+  size_t size(std::string path);
+
   // read from file
   // --------------
 
@@ -103,10 +106,14 @@ public:
   // store scalar
   // ------------
 
+  // fixed data-set
   void write(std::string path, bool   data);
   void write(std::string path, size_t data);
   void write(std::string path, float  data);
   void write(std::string path, double data);
+
+  // (part of) expandable data-set
+  void write(std::string path, double input, size_t index, double fill_val=0.0, size_t chunk_size=10);
 
   // store std::string
   // -----------------
@@ -258,6 +265,21 @@ inline void File::unlink(std::string path)
 // =================================================================================================
 // get shape of an array
 // =================================================================================================
+
+inline size_t File::size(std::string path)
+{
+  // open dataset
+  H5::DataSet   dataset   = m_fid.openDataSet(path.c_str());
+  H5::DataSpace dataspace = dataset.getSpace();
+
+  // read the size
+  hssize_t N = dataspace.getSelectNpoints();
+
+  // return output
+  return static_cast<size_t>(N);
+}
+
+// -------------------------------------------------------------------------------------------------
 
 inline std::vector<size_t> File::shape(std::string path)
 {
@@ -634,6 +656,105 @@ inline double File::read<double>(std::string path)
 
   // return output
   return out;
+}
+
+// =================================================================================================
+// scalar - (part of) expandable array
+// =================================================================================================
+
+inline void File::write(std::string path, double input, size_t index, double fill_val, size_t chunk_size)
+{
+  // initialize if needed
+  // --------------------
+
+  if ( !exists(path) )
+  {
+    // set rank
+    int rank = 1;
+
+    // initial and maximum shape of the array, and initial offset
+    // NB initially an array of size "index+1" will be written, filled with "fill_val" and "input"
+    std::vector<hsize_t> shape(rank, index+1), max_shape(rank, H5S_UNLIMITED), offset(rank, 0);
+
+    // define the data-space
+    H5::DataSpace dataspace(rank, shape.data(), max_shape.data());
+
+    // choose chunk size (chosen by the user, who knows what to expect)
+    std::vector<hsize_t> chunk_shape(rank);
+    chunk_shape[0] = static_cast<hsize_t>(chunk_size);
+
+    // enable chunking
+    H5::DSetCreatPropList cpar;
+    cpar.setChunk(rank, chunk_shape.data());
+    cpar.setFillValue(H5::PredType::NATIVE_DOUBLE, &fill_val);
+
+    // create new data-set
+    H5::DataSet dataset = m_fid.createDataSet(path.c_str(), H5::PredType::NATIVE_DOUBLE, dataspace, cpar);
+
+    // make sure that the dataset is at least what we expect
+    dataset.extend(shape.data());
+
+    // select the hyperslap
+    H5::DataSpace fspace = dataset.getSpace();
+    fspace.selectHyperslab(H5S_SELECT_SET, shape.data(), offset.data());
+
+    // initial data array, filled with "fill_val" and with "input" at "tmp[index]"
+    std::vector<double> tmp(index+1, fill_val);
+    tmp[index] = input;
+
+    // write data to the hyperslap
+    dataset.write(tmp.data(), H5::PredType::NATIVE_DOUBLE, dataspace, fspace);
+
+    // flush the file if so requested
+    if ( m_autoflush ) flush();
+
+    // quit function
+    return;
+  }
+
+  // extend
+  // ------
+
+  // open dataset
+  H5::DataSet   dataset   = m_fid.openDataSet(path.c_str());
+  H5::DataSpace dataspace = dataset.getSpace();
+
+  // get the current size
+  // - read rank (a.k.a number of dimensions)
+  int rank = dataspace.getSimpleExtentNdims();
+  // - allocate as HDF5-type
+  std::vector<hsize_t> size(rank);
+  // - read
+  dataspace.getSimpleExtentDims(size.data(), NULL);
+
+  // check rank (here only simple arrays are supported)
+  if ( rank != 1 )
+    throw std::runtime_error("Can only extend rank 1 array with this function");
+
+  // extend size, if needed
+  size[0] = std::max(static_cast<size_t>(size[0]), index+1);
+
+  // process extension
+  dataset.extend(size.data());
+
+  // set offset
+  std::vector<hsize_t> offset(rank, index);
+
+  // pseudo-shape of the array
+  std::vector<hsize_t> ex_shape(rank, 1);
+
+  // define the extra data-space
+  H5::DataSpace ex_datasape(rank, ex_shape.data());
+
+  // select a hyperslap
+  H5::DataSpace fspace = dataset.getSpace();
+  fspace.selectHyperslab(H5S_SELECT_SET, ex_shape.data(), offset.data());
+
+  // write data to the hyperslap
+  dataset.write(&input, H5::PredType::NATIVE_DOUBLE, ex_datasape, fspace);
+
+  // flush the file if so requested
+  if ( m_autoflush ) flush();
 }
 
 // =================================================================================================

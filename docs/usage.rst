@@ -60,6 +60,18 @@ Main functions:
 
   Read data (scalar, array, matrix, ...). Can be templated with many different types, see :ref:`overloaded_types`.
 
+* ``std::vector<size_t> shape("/path/to/data")``
+
+  Return the shape of the data-array.
+
+* ``size_t shape("/path/to/data", i)``
+
+  Return the shape of the data-array along axis ``i``.
+
+* ``size_t size("/path/to/data")``
+
+  Return the number of elements in the data-array.
+
 Support functions:
 
 * ``void File::unlink("/path/to/data")``
@@ -133,6 +145,67 @@ To read:
     return 0;
   }
 
+Basic types, part of an expandable array (size_t, double, ...)
+--------------------------------------------------------------
+
+In this case the scalar will be part of an array that automatically expands to contain new entries. The behavior is thus like allocating an array of arbitrary shape and then filling it item-by-item. The actual size is determined by the highest index specified. All entries in the array that have not been explicitly specified are assigned a default fill value. Note:
+
+* One can read the array as any array (i.e. using ``file.read<std::vector<...>>(...)``). This can be used also to read just one value.
+
+* One can convince oneself about the size of the array using the standard tools (``file.size(...)`` and ``file.shape(...)``).
+
+* At the first call the array some properties of the array are defined. At this time can choose the fill value (``fill_val``) and the size of the blocks in which the array is stored in the file (``chunk_size``). If one knows the ultimate size one can store in one chunk (most efficient). Otherwise one should choose a value which is high enough not to get a very scattered file, but low enough not to allocate a lot of space that is not used.
+
+The examples below feature a ``double``, which may be replaced with:
+
+* ``size_t``
+* ``float``
+* ``double``
+* ``std::string``
+
+Writing is done as follows:
+
+.. code-block:: cpp
+
+  #include <iostream>
+  #include <vector>
+  #include <HDF5pp.h>
+
+  int main()
+  {
+    H5p::File file = H5p::File("example.hdf5","w");
+
+    double data = 10.;
+    size_t idx  = 0;
+
+    file.write("/path/to/data",data,idx);
+
+    double data = 20.;
+    size_t idx  = 1;
+
+    // "/path/to/data" is automatically expanded to contain the new entry
+    file.write("/path/to/data",data,idx);
+
+    return 0;
+  }
+
+To read one reads the entire array:
+
+.. code-block:: cpp
+
+  #include <iostream>
+  #include <vector>
+  #include <HDF5pp.h>
+
+  int main()
+  {
+    H5p::File file = H5p::File("example.h5","r");
+
+    std::vector<double> data = file.read<std::vector<double>>("/path/to/data");
+
+    return 0;
+  }
+
 std::vector
 -----------
 
@@ -174,8 +247,8 @@ To read:
   {
     H5p::File file = H5p::File("example.h5","r");
 
-    std::vector<size_t> shape = file.shape("/data");
-    std::vector<double> data  = file.read<std::vector<double>>("/data");
+    std::vector<size_t> shape = file.shape("/path/to/data");
+    std::vector<double> data  = file.read<std::vector<double>>("/path/to/data");
 
     return 0;
   }
