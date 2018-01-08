@@ -612,7 +612,7 @@ inline T File::read_scalar(std::string path, const H5::PredType& HT)
   // check precision
   #ifndef HDF5PP_NDEBUG_PRECISION
     if ( ! this->correct_presision<T>(dataset) )
-      throw std::runtime_error("Incorrect precision");
+      throw std::runtime_error("Incorrect precision: "+path);
   #endif
 
   // check size
@@ -726,7 +726,7 @@ inline void File::write(std::string path, T input, const H5::PredType& HT,
   // check precision
   #ifndef HDF5PP_NDEBUG_PRECISION
     if ( ! this->correct_presision<T>(dataset) )
-      throw std::runtime_error("Incorrect precision");
+      throw std::runtime_error("Incorrect precision: "+path);
   #endif
 
   // get the current rank and shape
@@ -817,7 +817,7 @@ inline T File::read(std::string path, const H5::PredType& HT, size_t index)
   // check precision
   #ifndef HDF5PP_NDEBUG_PRECISION
     if ( ! this->correct_presision<T>(dataset) )
-      throw std::runtime_error("Incorrect precision");
+      throw std::runtime_error("Incorrect precision: "+path);
   #endif
 
   // get the current rank and shape
@@ -997,7 +997,7 @@ inline std::vector<T> File::read_vector(std::string path, const H5::PredType& HT
   // check precision
   #ifndef HDF5PP_NDEBUG_PRECISION
     if ( ! this->correct_presision<T>(dataset) )
-      throw std::runtime_error("Incorrect precision");
+      throw std::runtime_error("Incorrect precision: "+path);
   #endif
 
   // allocate output
@@ -1167,7 +1167,7 @@ inline Eigen::Matrix<T,Eigen::Dynamic,1,Eigen::ColMajor> File::read_eigen_column
   // check precision
   #ifndef HDF5PP_NDEBUG_PRECISION
     if ( ! this->correct_presision<T>(dataset) )
-      throw std::runtime_error("Incorrect precision");
+      throw std::runtime_error("Incorrect precision: "+path);
   #endif
 
   // allocate output
@@ -1236,7 +1236,7 @@ File::read_eigen_matrix(std::string path, const H5::PredType& HT)
   // check precision
   #ifndef HDF5PP_NDEBUG_PRECISION
     if ( ! this->correct_presision<T>(dataset) )
-      throw std::runtime_error("Incorrect precision");
+      throw std::runtime_error("Incorrect precision: "+path);
   #endif
 
   // get shape
@@ -1355,7 +1355,7 @@ inline cppmat::matrix<T> File::read_cppmat(std::string path, const H5::PredType&
   // check precision
   #ifndef HDF5PP_NDEBUG_PRECISION
     if ( ! this->correct_presision<T>(dataset) )
-      throw std::runtime_error("Incorrect precision");
+      throw std::runtime_error("Incorrect precision: "+path);
   #endif
 
   // allocate output
