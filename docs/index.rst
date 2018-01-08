@@ -26,11 +26,11 @@ This header-only module provides a very simple interface to store data to a HDF5
 
   int main()
   {
-    std::vector<double> out = ...;
+    std::vector<double> data = ...;
 
     H5p::File file = H5p::File("example.hdf5","w");
 
-    file.write("/path/to/output",out);
+    file.write("/path/to/data", data);
 
     return 0;
   }
