@@ -18,13 +18,13 @@ The general structure of a program is
 
   int main()
   {
-    std::vector<double> out = ...;
+    std::vector<double> data = ...;
 
-    H5p::File file = H5p::File("example.hdf5","w");
+    H5p::File file = H5p::File("example.hdf5", "w");
 
-    file.write("/path/to/output",out);
+    file.write("/path/to/data", data);
 
-    std::vector<double> in = file.read<std::vector<double>>("/path/to/input");
+    std::vector<double> read = file.read<std::vector<double>>("/path/to/data");
 
     return 0;
   }
@@ -40,7 +40,7 @@ All functions are members of the File class:
 
 .. code-block:: cpp
 
-  H5p::File("/path/to/file","mode");
+  H5p::File("/path/to/file", "mode");
 
 The constructor takes two arguments: the file name and the read/write mode. For the latter there are three possibilities:
 
@@ -104,12 +104,13 @@ Basic types (size_t, double, ...)
 
 The examples below feature a ``double``, which may be replaced with:
 
+* ``int``
 * ``size_t``
 * ``float``
 * ``double``
 * ``std::string``
 
-Writing is done as follows:
+Writing and or reading is done as follows:
 
 .. code-block:: cpp
 
@@ -121,36 +122,23 @@ Writing is done as follows:
   {
     double data = 10.;
 
-    H5p::File file = H5p::File("example.hdf5","w");
+    H5p::File file = H5p::File("example.hdf5", "w");
 
-    file.write("/path/to/data",data);
+    file.write("/path/to/data", data);
 
-    return 0;
-  }
-
-To read:
-
-.. code-block:: cpp
-
-  #include <iostream>
-  #include <vector>
-  #include <HDF5pp.h>
-
-  int main()
-  {
-    H5p::File file = H5p::File("example.h5","r");
-
-    double data = file.read<double>("/data");
+    double read_data = file.read<double>("/path/to/data");
 
     return 0;
   }
+
+[:download:`source: example.cpp <examples/scalar/example.cpp>`, :download:`compile: CMakeLists.txt <examples/scalar/CMakeLists.txt>`]
 
 Basic types, part of an expandable array (size_t, double, ...)
 --------------------------------------------------------------
 
 In this case the scalar will be part of an array that automatically expands to contain new entries. The behavior is thus like allocating an array of arbitrary shape and then filling it item-by-item. The actual size is determined by the highest index specified. All entries in the array that have not been explicitly specified are assigned a default fill value. Note:
 
-* One can read the array as any array (i.e. using ``file.read<std::vector<...>>(...)``). This can be used also to read just one value.
+* One can read one value from, but also read the array as any array (i.e. using ``file.read<std::vector<...>>(...)``).
 
 * One can convince oneself about the size of the array using the standard tools (``file.size(...)`` and ``file.shape(...)``).
 
@@ -158,12 +146,12 @@ In this case the scalar will be part of an array that automatically expands to c
 
 The examples below feature a ``double``, which may be replaced with:
 
+* ``int``
 * ``size_t``
 * ``float``
 * ``double``
-* ``std::string``
 
-Writing is done as follows:
+Writing and or reading is done as follows:
 
 .. code-block:: cpp
 
@@ -173,38 +161,30 @@ Writing is done as follows:
 
   int main()
   {
-    H5p::File file = H5p::File("example.hdf5","w");
+    H5p::File file = H5p::File("example.hdf5", "w");
 
     double data = 10.;
     size_t idx  = 0;
 
-    file.write("/path/to/data",data,idx);
+    file.write("/path/to/data", data, idx);
 
-    double data = 20.;
-    size_t idx  = 1;
+    data = 20.;
+    idx  = 1;
 
     // "/path/to/data" is automatically expanded to contain the new entry
-    file.write("/path/to/data",data,idx);
+    file.write("/path/to/data", data, idx);
+
+    // read one entry
+    idx = 0;
+    double read_entry = file.read<double>("/path/to/data", idx);
+
+    // read entire array
+    std::vector<double> read_data = file.read<std::vector<double>>("/path/to/data");
 
     return 0;
   }
 
-To read one reads the entire array:
-
-.. code-block:: cpp
-
-  #include <iostream>
-  #include <vector>
-  #include <HDF5pp.h>
-
-  int main()
-  {
-    H5p::File file = H5p::File("example.h5","r");
-
-    std::vector<double> data = file.read<std::vector<double>>("/path/to/data");
-
-    return 0;
-  }
+[:download:`source: example.cpp <examples/scalar/example.cpp>`, :download:`compile: CMakeLists.txt <examples/scalar/CMakeLists.txt>`]
 
 std::vector
 -----------
@@ -219,41 +199,20 @@ Writing a vector (and optionally its 'dimensions') is done as follows:
 
   int main()
   {
-    // mimic 3x2 vector
+    H5p::File file = H5p::File("example.hdf5", "w");
+
     std::vector<double> data  = { 0., 1., 2., 3., 4., 5. };
     std::vector<size_t> shape = { 3 , 2 };
 
-    // write
-    H5p::File file = H5p::File("example.hdf5","w");
-    // - without shape
-    file.write("/data/as/vector",data);
-    // - with shape
-    file.write("/data/as/matrix",data,shape);
+    file.write("/path/to/data", data, shape);
+
+    std::vector<double> read_data  = file.read<std::vector<double>>("/path/to/data");
+    std::vector<size_t> read_shape = file.shape("/path/to/data");
 
     return 0;
   }
 
-[:download:`source: example.cpp <examples/vector_write/example.cpp>`, :download:`compile: CMakeLists.txt <examples/vector_write/CMakeLists.txt>`]
-
-To read:
-
-.. code-block:: cpp
-
-  #include <iostream>
-  #include <vector>
-  #include <HDF5pp.h>
-
-  int main()
-  {
-    H5p::File file = H5p::File("example.h5","r");
-
-    std::vector<size_t> shape = file.shape("/path/to/data");
-    std::vector<double> data  = file.read<std::vector<double>>("/path/to/data");
-
-    return 0;
-  }
-
-[:download:`source: example.cpp <examples/vector_read/example.cpp>`, :download:`compile: CMakeLists.txt <examples/vector_read/CMakeLists.txt>`]
+[:download:`source: example.cpp <examples/vector/example.cpp>`, :download:`compile: CMakeLists.txt <examples/vector/CMakeLists.txt>`]
 
 .. note::
 
@@ -266,11 +225,11 @@ Reading with Python does allow direct interpretation of the matrix
   import h5py
   import numpy as np
 
-  f = h5py.File('example.h5','r')
+  f = h5py.File('example.hdf5','r')
 
-  print(f['data'][:])
+  print(f['/data'][...])
 
-[:download:`source: example.py <examples/vector_write/example.py>`]
+[:download:`source: example.py <examples/vector/example.py>`]
 
 cppmat - multi-dimensional arrays
 ---------------------------------
@@ -292,7 +251,7 @@ To enable this feature:
       #include <HDF5pp.h>
       #include <cppmat/cppmat.h>
 
-Writing matrices of arbitrary dimensions can be done as follows:
+Writing and reading matrices of arbitrary dimensions can be done as follows:
 
 .. code-block:: cpp
 
@@ -306,33 +265,16 @@ Writing matrices of arbitrary dimensions can be done as follows:
 
     // ... fill "data"
 
-    H5p::File file = H5p::File("example.h5","w");
+    H5p::File file = H5p::File("example.hdf5", "w");
 
-    file.write("/data",data);
+    file.write("/path/to/data", data);
 
-    return 0;
-  }
-
-[:download:`source: example.cpp <examples/eigen_cppmat_write/example.cpp>`, :download:`compile: CMakeLists.txt <examples/eigen_cppmat_write/CMakeLists.txt>`]
-
-To read:
-
-.. code-block:: cpp
-
-  #include <iostream>
-  #include <cppmat/cppmat.h>
-  #include <HDF5pp.h>
-
-  int main()
-  {
-    H5p::File file = H5p::File("example.h5","r");
-
-    cppmat::matrix<double> data = file.read<cppmat::matrix<double>>("/data");
+    cppmat::matrix<double> read_data = file.read<cppmat::matrix<double>>("/path/to/data");
 
     return 0;
   }
 
-[:download:`source: example.cpp <examples/eigen_cppmat_read/example.cpp>`, :download:`compile: CMakeLists.txt <examples/eigen_cppmat_read/CMakeLists.txt>`]
+[:download:`source: example.cpp <examples/cppmat/example.cpp>`, :download:`compile: CMakeLists.txt <examples/cppmat/CMakeLists.txt>`]
 
 Eigen - linear algebra library
 ------------------------------
@@ -354,7 +296,7 @@ To enable this feature:
       #include <HDF5pp.h>
       #include <Eigen/Eigen>
 
-Writing matrices or arrays can be done as follows:
+Writing and reading matrices or arrays can be done as follows:
 
 .. code-block:: cpp
 
@@ -371,35 +313,13 @@ Writing matrices or arrays can be done as follows:
 
     // ... fill "data"
 
-    H5p::File file = H5p::File("example.h5","w");
+    H5p::File file = H5p::File("example.hdf5", "w");
 
-    file.write("/data",data);
+    file.write("/path/to/data", data);
 
-    return 0;
-  }
-
-[:download:`source: example.cpp <examples/eigen_cppmat_write/example.cpp>`, :download:`compile: CMakeLists.txt <examples/eigen_cppmat_write/CMakeLists.txt>`]
-
-To read:
-
-.. code-block:: cpp
-
-  #include <iostream>
-  #include <Eigen/Eigen>
-  #include <cppmat/cppmat.h>
-  #include <HDF5pp.h>
-
-  // alias row-major Eigen matrix
-  typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> MatD;
-
-  int main()
-  {
-    H5p::File file = H5p::File("example.h5","r");
-
-    MatD data = file.read<MatD>("/data");
+    MatD read_data = file.read<MatD>("/path/to/data");
 
     return 0;
   }
 
-[:download:`source: example.cpp <examples/eigen_cppmat_read/example.cpp>`, :download:`compile: CMakeLists.txt <examples/eigen_cppmat_read/CMakeLists.txt>`]
-
+[:download:`source: example.cpp <examples/eigen/example.cpp>`, :download:`compile: CMakeLists.txt <examples/eigen/CMakeLists.txt>`]

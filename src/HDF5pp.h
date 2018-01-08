@@ -7,14 +7,17 @@
 #ifndef HDF5PP_H
 #define HDF5PP_H
 
-// -------------------------------------------------------------------------------------------------
+// ==================================== PREPROCESSOR DIRECTIVES ====================================
+
+// -------------------------------- load libraries (conditionally) ---------------------------------
 
 // basic include
 #include <fstream>
 #include "H5Cpp.h"
 #include <vector>
+#include <assert.h>
 
-// optionally load Eigen
+// optionally enable plug-in Eigen and load the library
 #ifdef EIGEN_WORLD_VERSION
 #define HDF5PP_EIGEN
 #endif
@@ -23,7 +26,7 @@
 #include <Eigen/Eigen>
 #endif
 
-// optionally load cppmat
+// optionally enable plug-in cppmat and load the library
 #ifdef CPPMAT_WORLD_VERSION
 #define HDF5PP_CPPMAT
 #endif
@@ -32,11 +35,11 @@
 #include <cppmat/cppmat.h>
 #endif
 
-// -------------------------------------------------------------------------------------------------
+// ------------------------------------ set version information ------------------------------------
 
 #define HDF5PP_WORLD_VERSION 0
 #define HDF5PP_MAJOR_VERSION 0
-#define HDF5PP_MINOR_VERSION 5
+#define HDF5PP_MINOR_VERSION 6
 
 #define HDF5PP_VERSION_AT_LEAST(x,y,z) \
   (HDF5PP_WORLD_VERSION>x || (HDF5PP_WORLD_VERSION>=x && \
@@ -48,16 +51,16 @@
    HDF5PP_MAJOR_VERSION==y && \
    HDF5PP_MINOR_VERSION==z)
 
-// -------------------------------------------------------------------------------------------------
+// ---------------------------- contain everything in the namespace H5p ----------------------------
 
 namespace H5p {
 
-// =================================================================================================
+// ================================== CLASS DEFINTION (OVERVIEW) ===================================
 
 class File
 {
 private:
-  H5::H5File  m_fid;
+  H5::H5File  m_file;
   std::string m_fname;
   bool        m_autoflush;
 
@@ -74,98 +77,180 @@ public:
   // -----------------
 
   // flush all buffers associated with a file to disk
-  // NB if 'autoflush==true' you don't need to call this function, all write functions will call it
+  // NB if 'autoflush==true' you don't need to call this function, all 'write' functions call it
   void flush();
 
   // check if a path exists (is a group or a dataset)
   bool exists(std::string path);
 
-  // create a group based on a specified path
-  // NB there is usually no need to call this function, it is called by all write functions
+  // create a group
+  // NB there is usually no need to call this function, all 'write' functions call it
   void createGroup(std::string path);
 
   // unlink a path
   // WARNING the space in the file may not be freed, use: $ h5repack file1 file2
   void unlink(std::string path);
 
-  // read the shape of the data-matrix
+  // read the shape of the data
   std::vector<size_t> shape(std::string path);
 
-  // read the shape in a specific dimension of the data-matrix
+  // read the shape of the data along a specific dimension
   size_t shape(std::string path, size_t i);
 
-  // read the size (total number of entries)
+  // read the size of the data (total number of entries, '== prod(shape(path))')
   size_t size(std::string path);
+
+  // (advanced) read the size of the data in an opened dataset or data-space
+  size_t size(const H5::DataSet   &dataset  );
+  size_t size(const H5::DataSpace &dataspace);
+
+  // (advanced) read the shape of the data in an opened dataset or data-space
+  std::vector<size_t> shape(const H5::DataSet   &dataset  );
+  std::vector<size_t> shape(const H5::DataSpace &dataspace);
+
+  // (advanced) check if an opened dataset has the exact precision of the template type
+  template<class T>
+  bool correct_presision(const H5::DataSet &dataset);
 
   // read from file
   // --------------
 
-  // read to specific data type, e.g. double, Eigen<double,...>, cppmat::matrix<double>, ...
-  template<class T> T read(std::string path);
+  // read as specific data-type, e.g. double, Eigen<double,...>, cppmat::matrix<double>, ...
+  // NB double, int, etc. -> data can contain only exactly one entry
+  //    std::string       -> data can contain only a string
+  template<class T>
+  T read(std::string path);
 
-  // store scalar
-  // ------------
+  // read array component as specific scalar data-type, e.g. double, int, ...
+  template<class T>
+  T read(std::string path, size_t index);
 
-  // fixed data-set
-  void write(std::string path, bool   data);
+  // (advanced) read scalar of arbitrary type from a dataset containing exactly one entry
+  template<class T>
+  T read_scalar(std::string path, const H5::PredType& HT);
+
+  // (advanced) read scalar of arbitrary type from a dataset (scalar, or of rank 1)
+  template<class T>
+  T read(std::string path, const H5::PredType& HT, size_t index);
+
+  // (advanced) read "std::vector" of arbitrary type from a dataset of arbitrary rank
+  template<class T>
+  std::vector<T> read_vector(std::string path, const H5::PredType& HT);
+
+  // write to file
+  // -------------
+
+  // write "std::string" to string dataset
+  void write(std::string path, std::string data);
+
+  // write scalar to scalar dataset (non-extendable)
+  void write(std::string path, int    data);
   void write(std::string path, size_t data);
   void write(std::string path, float  data);
   void write(std::string path, double data);
 
-  // (part of) expandable data-set
-  void write(std::string path, double input, size_t index, double fill_val=0.0, size_t chunk_size=10);
+  // write scalar as (part of) an extendable dataset of rank 1
+  void write(std::string path, int    data, size_t index, int    fillval=0  , size_t chunk_size=10);
+  void write(std::string path, size_t data, size_t index, size_t fillval=0  , size_t chunk_size=10);
+  void write(std::string path, float  data, size_t index, float  fillval=0.0, size_t chunk_size=10);
+  void write(std::string path, double data, size_t index, double fillval=0.0, size_t chunk_size=10);
 
-  // store std::string
-  // -----------------
+  // write "std::vector" to a dataset of arbitrary shape
+  void write(std::string path, const std::vector<int>    &data,const std::vector<size_t> &shape={});
+  void write(std::string path, const std::vector<size_t> &data,const std::vector<size_t> &shape={});
+  void write(std::string path, const std::vector<float>  &data,const std::vector<size_t> &shape={});
+  void write(std::string path, const std::vector<double> &data,const std::vector<size_t> &shape={});
 
-  void write(std::string path, std::string data);
+  // (advanced) write scalar of arbitrary type to a dataset containing exactly one entry
+  template<class T>
+  void write(std::string path, T data, const H5::PredType& HT);
 
-  // store std::vector
-  // -----------------
+  // (advanced) write scalar of arbitrary type as (part of) an extendable dataset of rank 1
+  template<class T>
+  void write(std::string path, T data, const H5::PredType& HT, size_t index, T fill_val,
+    size_t chunk_size);
 
-  void write(std::string path, const std::vector<float>  &input, const std::vector<size_t> &shape={});
-  void write(std::string path, const std::vector<double> &input, const std::vector<size_t> &shape={});
+  // (advanced) write array or any type and of arbitrary shape or rank
+  template<class T>
+  void write(std::string path, const T *input, const H5::PredType& HT,
+    const std::vector<size_t> &shape);
 
-  // store Eigen-array
-  // -----------------
+  // (advanced) write std::vector of arbitrary type to a dataset of arbitrary rank
+  template<class T>
+  void write(std::string path, const std::vector<T> &data, const H5::PredType& HT,
+    const std::vector<size_t> &shape);
+
+  // plugin: Eigen
+  // -------------
 
   #ifdef HDF5PP_EIGEN
 
-  void write(
-    std::string path,
-    const Eigen::Matrix<size_t, Eigen::Dynamic, 1, Eigen::ColMajor> &input
-  );
+  // write column to dataset of rank 1
+  void write(std::string path, const Eigen::Matrix<int   ,Eigen::Dynamic,1,Eigen::ColMajor> &data);
+  void write(std::string path, const Eigen::Matrix<size_t,Eigen::Dynamic,1,Eigen::ColMajor> &data);
+  void write(std::string path, const Eigen::Matrix<float ,Eigen::Dynamic,1,Eigen::ColMajor> &data);
+  void write(std::string path, const Eigen::Matrix<double,Eigen::Dynamic,1,Eigen::ColMajor> &data);
 
-  void write(
-    std::string path,
-    const Eigen::Matrix<size_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> &input
-  );
+  // write matrix to dataset of rank 2
+  void write(std::string path,
+    const Eigen::Matrix<int  ,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &data);
 
-  void write(
-    std::string path,
-    const Eigen::Matrix<double, Eigen::Dynamic, 1, Eigen::ColMajor> &input
-  );
+  void write(std::string path,
+    const Eigen::Matrix<size_t,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &data);
 
-  void write(
-    std::string path,
-    const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> &input
-  );
+  void write(std::string path,
+    const Eigen::Matrix<float ,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &data);
+
+  void write(std::string path,
+    const Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &data);
+
+  // (advanced) write column of arbitrary type to dataset of rank 1
+  template<class T>
+  void write(std::string path,
+    const Eigen::Matrix<T,Eigen::Dynamic,1,Eigen::ColMajor> &data,
+    const H5::PredType& HT);
+
+  // (advanced) write matrix of arbitrary type to dataset of rank 2
+  template<class T>
+  void write(std::string path,
+    const Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &data,
+    const H5::PredType& HT);
+
+  // (advanced) read data of arbitrary type to Eigen column
+  template<class T>
+  Eigen::Matrix<T,Eigen::Dynamic,1,Eigen::ColMajor> read_eigen_column(std::string path,
+    const H5::PredType& HT);
+
+  // (advanced) read data of arbitrary type to Eigen matrix
+  template<class T>
+  Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> read_eigen_matrix(std::string path,
+    const H5::PredType& HT);
 
   #endif
 
-  // store to / read from cppmat-array
-  // ---------------------------------
+  // plugin: cppmat
+  // --------------
 
   #ifdef HDF5PP_CPPMAT
 
-  void write(std::string path, const cppmat::matrix<double> &input);
+  // write nd-array to dataset of matching rank
+  void write(std::string path, const cppmat::matrix<int   > &data);
+  void write(std::string path, const cppmat::matrix<size_t> &data);
+  void write(std::string path, const cppmat::matrix<float > &data);
+  void write(std::string path, const cppmat::matrix<double> &data);
+
+  // (advanced) write nd-array of arbitrary type to dataset of matching rank
+  template<class T>
+  void write(std::string path, const cppmat::matrix<T> &data, const H5::PredType& HT);
+
+  // (advanced) read data of arbitrary type to cppmat matrix
+  template<class T>
+  cppmat::matrix<T> read_cppmat(std::string path, const H5::PredType& HT);
 
   #endif
 };
 
-// =================================================================================================
-// constructor
-// =================================================================================================
+// ========================================= CONSTRUCTORS ==========================================
 
 inline File::File(std::string name, std::string mode, bool autoflush)
 {
@@ -182,25 +267,25 @@ inline File::File(std::string name, std::string mode, bool autoflush)
   }
 
   // open file
-  if      ( mode == "r"         ) m_fid = H5::H5File(m_fname.c_str(),H5F_ACC_RDONLY);
-  else if ( mode == "w"         ) m_fid = H5::H5File(m_fname.c_str(),H5F_ACC_TRUNC );
-  else if ( mode == "a" or "r+" ) m_fid = H5::H5File(m_fname.c_str(),H5F_ACC_RDWR  );
+  if      ( mode == "r"         ) m_file = H5::H5File(m_fname.c_str(),H5F_ACC_RDONLY);
+  else if ( mode == "w"         ) m_file = H5::H5File(m_fname.c_str(),H5F_ACC_TRUNC );
+  else if ( mode == "a" or "r+" ) m_file = H5::H5File(m_fname.c_str(),H5F_ACC_RDWR  );
   else throw std::runtime_error("HDF5pp: unknown mode to open file");
 
   // store flush settings
   m_autoflush = autoflush;
 }
 
-// =================================================================================================
-// support functions
-// =================================================================================================
+// ======================================= SUPPORT FUNCTIONS =======================================
+
+// ------------------------------------------ flush file -------------------------------------------
 
 inline void File::flush()
 {
-  m_fid.flush(H5F_SCOPE_GLOBAL);
+  m_file.flush(H5F_SCOPE_GLOBAL);
 }
 
-// -------------------------------------------------------------------------------------------------
+// -------------------------- check if path exists (is group or dataset) --------------------------
 
 inline bool File::exists(std::string path)
 {
@@ -211,24 +296,23 @@ inline bool File::exists(std::string path)
   while ( true )
   {
     // - terminate if all "/" have been found
-    if ( std::string::npos == idx )
-      break;
+    if ( std::string::npos == idx ) break;
     // - create group if needed
     if ( idx > 0 )
     {
       // -- get group name
       std::string name(path.substr(0,idx));
       // -- create if needed
-      if ( !m_fid.exists(name.c_str()) ) return false;
+      if ( !m_file.exists(name.c_str()) ) return false;
     }
     // - proceed to next "/"
     idx = path.find("/",idx+1);
   }
 
-  return m_fid.exists(path.c_str());
+  return m_file.exists(path.c_str());
 }
 
-// -------------------------------------------------------------------------------------------------
+// ---------------------------------------- create a group -----------------------------------------
 
 inline void File::createGroup(std::string path)
 {
@@ -239,52 +323,98 @@ inline void File::createGroup(std::string path)
   while ( true )
   {
     // - terminate if all "/" have been found
-    if ( std::string::npos == idx )
-      return;
+    if ( std::string::npos == idx ) return;
     // - create group if needed
     if ( idx > 0 )
     {
       // -- get group name
       std::string name(path.substr(0,idx));
       // -- create if needed
-      if ( !m_fid.exists(name.c_str()) )
-        H5::Group group = m_fid.createGroup(name.c_str());
+      if ( !m_file.exists(name.c_str()) )
+        H5::Group group = m_file.createGroup(name.c_str());
     }
     // - proceed to next "/"
     idx = path.find("/",idx+1);
   }
 }
 
-// -------------------------------------------------------------------------------------------------
+// ----------------------------------------- unlink a path -----------------------------------------
 
 inline void File::unlink(std::string path)
 {
-  m_fid.unlink(path.c_str());
+  m_file.unlink(path.c_str());
 }
 
-// =================================================================================================
-// get shape of an array
-// =================================================================================================
+// ------------------------ read size of the data (total number of entries) ------------------------
 
 inline size_t File::size(std::string path)
 {
-  // open dataset
-  H5::DataSet   dataset   = m_fid.openDataSet(path.c_str());
-  H5::DataSpace dataspace = dataset.getSpace();
-
-  // read the size
-  hssize_t N = dataspace.getSelectNpoints();
-
-  // return output
-  return static_cast<size_t>(N);
+  return static_cast<size_t>(m_file.openDataSet(path.c_str()).getSpace().getSelectNpoints());
 }
 
-// -------------------------------------------------------------------------------------------------
+// ------------------------------------ read shape of the data -------------------------------------
 
 inline std::vector<size_t> File::shape(std::string path)
 {
+  // open data-space
+  H5::DataSpace dataspace = m_file.openDataSet(path.c_str()).getSpace();
+
+  // get the size in each direction
+  // - read rank (a.k.a number of dimensions)
+  int rank = dataspace.getSimpleExtentNdims();
+  // - allocate as HDF5-type
+  std::vector<hsize_t> dimsf(rank);
+  // - allocate as vector
+  std::vector<size_t> shape(rank);
+  // - read
+  dataspace.getSimpleExtentDims(dimsf.data(), NULL);
+  // - convert to vector
+  for ( int i = 0 ; i < rank ; ++i ) shape[i] = static_cast<size_t>(dimsf[i]);
+
+  return shape;
+}
+
+// ------------------------- read shape of the data along a specific axis --------------------------
+
+inline size_t File::shape(std::string path, size_t i)
+{
   // open dataset
-  H5::DataSet   dataset   = m_fid.openDataSet(path.c_str());
+  H5::DataSet   dataset   = m_file.openDataSet(path.c_str());
+  H5::DataSpace dataspace = dataset.getSpace();
+
+  // get the size in each direction
+  // - read rank (a.k.a number of dimensions)
+  int rank = dataspace.getSimpleExtentNdims();
+  // - check rank
+  if ( rank < static_cast<int>(i) )
+    throw std::runtime_error("Cannot read, rank of data lower that requested");
+  // - allocate as HDF5-type
+  std::vector<hsize_t> dimsf(rank);
+  // - read
+  dataspace.getSimpleExtentDims(dimsf.data(), NULL);
+
+  return static_cast<size_t>(dimsf[i]);
+}
+
+// ----------------------- read the size of the data in an opened dataset ------------------------
+
+inline size_t File::size(const H5::DataSet &dataset)
+{
+  return static_cast<size_t>(dataset.getSpace().getSelectNpoints());
+}
+
+// ----------------------- read the size of the data in an opened data-space -----------------------
+
+inline size_t File::size(const H5::DataSpace &dataspace)
+{
+  return static_cast<size_t>(dataspace.getSelectNpoints());
+}
+
+// ------------------------ read the shape of the data in an opened dataset ------------------------
+
+inline std::vector<size_t> File::shape(const H5::DataSet &dataset)
+{
+  // read the data-space
   H5::DataSpace dataspace = dataset.getSpace();
 
   // get the size in each direction
@@ -299,370 +429,245 @@ inline std::vector<size_t> File::shape(std::string path)
   // - convert to vector
   for ( int i = 0 ; i < rank ; ++i ) shape[i] = static_cast<size_t>(dimsf[i]);
 
-  // return output
   return shape;
 }
 
-// -------------------------------------------------------------------------------------------------
+// ---------------------- read the shape of the data in an opened data-space -----------------------
 
-inline size_t File::shape(std::string path, size_t i)
+inline std::vector<size_t> File::shape(const H5::DataSpace &dataspace)
 {
-  // open dataset
-  H5::DataSet   dataset   = m_fid.openDataSet(path.c_str());
-  H5::DataSpace dataspace = dataset.getSpace();
-
   // get the size in each direction
   // - read rank (a.k.a number of dimensions)
   int rank = dataspace.getSimpleExtentNdims();
-  // - check rank
-  if ( rank < static_cast<int>(i) )
-    throw std::runtime_error("Cannot read, rank of data lower that requested");
   // - allocate as HDF5-type
   std::vector<hsize_t> dimsf(rank);
+  // - allocate as vector
+  std::vector<size_t> shape(rank);
   // - read
   dataspace.getSimpleExtentDims(dimsf.data(), NULL);
-  // - get output
-  size_t shape = static_cast<size_t>(dimsf[i]);
+  // - convert to vector
+  for ( int i = 0 ; i < rank ; ++i ) shape[i] = static_cast<size_t>(dimsf[i]);
 
-  // return output
   return shape;
 }
 
-// =================================================================================================
-// scalar
-// =================================================================================================
+// ============================= WRITE STD::STRING TO SEPARATE DATASET =============================
 
-inline void File::write(std::string path, bool input)
+inline void File::write(std::string path, std::string input)
 {
   // create group(s) if needed
   createGroup(path);
 
-  // pseudo-shape of the array
-  std::vector<hsize_t> dimsf(1);
-  dimsf[0] = 1;
+  // set data-type and data-space
+  H5::StrType   datatype(0, H5T_VARIABLE);
+  H5::DataSpace dataspace(H5S_SCALAR);
 
-  // define storage shape / type
-  H5::DataSpace dataspace(1,dimsf.data());
-  H5::IntType   datatype(H5::PredType::NATIVE_INT);
+  // create dataset
+  H5::DataSet dataset = m_file.createDataSet(path.c_str(), datatype, dataspace);
 
-  // use little endian storage
-  datatype.setOrder(H5T_ORDER_LE);
-
-  // add data-set to file
-  H5::DataSet dataset = m_fid.createDataSet(path.c_str(),datatype,dataspace);
-
-  // store data
-  int tmp = static_cast<int>(input);
-  dataset.write(&tmp, H5::PredType::NATIVE_INT);
+  // write string to dataset
+  dataset.write(input, datatype, dataspace);
 
   // flush the file if so requested
   if ( m_autoflush ) flush();
 }
 
-// -------------------------------------------------------------------------------------------------
+// =================== READ STD::STRING FROM DATASET THAT ONLY CONTAINS A STRING ===================
+
+template<>
+inline std::string File::read<std::string>(std::string path)
+{
+  // open dataset, get data-type
+  H5::DataSet dataset = m_file.openDataSet(path.c_str());
+
+  // allocate output
+  std::string out;
+
+  // read output
+  dataset.read(out, dataset.getStrType(), dataset.getSpace());
+
+  return out;
+}
+
+// ================= CHECK IF DATASET HAS A PRECISION THAT MATCHES A SPECIFIC TYPE =================
+
+// ---------------------------------------------- int ----------------------------------------------
+
+template<>
+inline bool File::correct_presision<int>(const H5::DataSet &dataset)
+{
+  // check data-type
+  if ( dataset.getTypeClass() != H5T_INTEGER ) return false;
+
+  // check the number of bytes
+  if ( dataset.getIntType().getSize() != sizeof(int) ) return false;
+
+  return true;
+}
+
+// -------------------------------------------- size_t ---------------------------------------------
+
+template<>
+inline bool File::correct_presision<size_t>(const H5::DataSet &dataset)
+{
+  // check data-type
+  if ( dataset.getTypeClass() != H5T_INTEGER ) return false;
+
+  // check the number of bytes
+  if ( dataset.getIntType().getSize() != sizeof(size_t) ) return false;
+
+  return true;
+}
+
+// --------------------------------------------- float ---------------------------------------------
+
+template<>
+inline bool File::correct_presision<float>(const H5::DataSet &dataset)
+{
+  // check data-type
+  if ( dataset.getTypeClass() != H5T_FLOAT ) return false;
+
+  // check the number of bytes
+  if ( dataset.getFloatType().getSize() != sizeof(float) ) return false;
+
+  return true;
+}
+
+// -------------------------------------------- double ---------------------------------------------
+
+template<>
+inline bool File::correct_presision<double>(const H5::DataSet &dataset)
+{
+  // check data-type
+  if ( dataset.getTypeClass() != H5T_FLOAT ) return false;
+
+  // check the number of bytes
+  if ( dataset.getFloatType().getSize() != sizeof(double) ) return false;
+
+  return true;
+}
+
+// ================================ WRITE SCALAR TO SCALAR DATASET =================================
+
+// ------------------------------------------- template --------------------------------------------
+
+template<class T>
+inline void File::write(std::string path, T input, const H5::PredType& HT)
+{
+  // create group(s) if needed
+  createGroup(path);
+
+  // define data-type, force little-endian storage
+  auto datatype(HT);
+  datatype.setOrder(H5T_ORDER_LE);
+
+  // add dataset to file
+  H5::DataSet dataset = m_file.createDataSet(path.c_str(), datatype, H5::DataSpace(H5S_SCALAR));
+
+  // store data
+  dataset.write(&input, HT);
+
+  // flush the file if so requested
+  if ( m_autoflush ) flush();
+}
+
+// ---------------------------------------------- int ----------------------------------------------
+
+inline void File::write(std::string path, int input)
+{
+  return write<int>(path,input,H5::PredType::NATIVE_INT);
+}
+
+// -------------------------------------------- size_t ---------------------------------------------
 
 inline void File::write(std::string path, size_t input)
 {
-  // create group(s) if needed
-  createGroup(path);
-
-  // pseudo-shape of the array
-  std::vector<hsize_t> dimsf(1);
-  dimsf[0] = 1;
-
-  // define storage shape / type
-  H5::DataSpace dataspace(1,dimsf.data());
-  H5::IntType   datatype(H5::PredType::NATIVE_HSIZE);
-
-  // use little endian storage
-  datatype.setOrder(H5T_ORDER_LE);
-
-  // add data-set to file
-  H5::DataSet dataset = m_fid.createDataSet(path.c_str(),datatype,dataspace);
-
-  // store data
-  dataset.write(&input, H5::PredType::NATIVE_HSIZE);
-
-  // flush the file if so requested
-  if ( m_autoflush ) flush();
+  return write<size_t>(path,input,H5::PredType::NATIVE_HSIZE);
 }
 
-// -------------------------------------------------------------------------------------------------
+// --------------------------------------------- float ---------------------------------------------
 
 inline void File::write(std::string path, float input)
 {
-  // create group(s) if needed
-  createGroup(path);
-
-  // pseudo-shape of the array
-  std::vector<hsize_t> dimsf(1);
-  dimsf[0] = 1;
-
-  // define storage shape / type
-  H5::DataSpace dataspace(1,dimsf.data());
-  H5::FloatType datatype(H5::PredType::NATIVE_FLOAT);
-
-  // use little endian storage
-  datatype.setOrder(H5T_ORDER_LE);
-
-  // add data-set to file
-  H5::DataSet dataset = m_fid.createDataSet(path.c_str(),datatype,dataspace);
-
-  // store data
-  dataset.write(&input, H5::PredType::NATIVE_FLOAT);
-
-  // flush the file if so requested
-  if ( m_autoflush ) flush();
+  return write<float>(path,input,H5::PredType::NATIVE_FLOAT);
 }
 
-// -------------------------------------------------------------------------------------------------
+// -------------------------------------------- double ---------------------------------------------
 
 inline void File::write(std::string path, double input)
 {
-  // create group(s) if needed
-  createGroup(path);
-
-  // pseudo-shape of the array
-  std::vector<hsize_t> dimsf(1);
-  dimsf[0] = 1;
-
-  // define storage shape / type
-  H5::DataSpace dataspace(1,dimsf.data());
-  H5::FloatType datatype(H5::PredType::NATIVE_DOUBLE);
-
-  // use little endian storage
-  datatype.setOrder(H5T_ORDER_LE);
-
-  // add data-set to file
-  H5::DataSet dataset = m_fid.createDataSet(path.c_str(),datatype,dataspace);
-
-  // store data
-  dataset.write(&input, H5::PredType::NATIVE_DOUBLE);
-
-  // flush the file if so requested
-  if ( m_autoflush ) flush();
+  return write<double>(path,input,H5::PredType::NATIVE_DOUBLE);
 }
 
-// -------------------------------------------------------------------------------------------------
+// ======================== READ SCALAR FROM DATASET (SCALAR, OR OF SIZE 1) ========================
+
+// ------------------------------------------- template --------------------------------------------
+
+template<class T>
+inline T File::read_scalar(std::string path, const H5::PredType& HT)
+{
+  // open dataset
+  H5::DataSet dataset = m_file.openDataSet(path.c_str());
+
+  // check precision
+  #ifndef HDF5PP_NDEBUG_PRECISION
+    if ( ! this->correct_presision<T>(dataset) )
+      throw std::runtime_error("Incorrect precision");
+  #endif
+
+  // check size
+  if ( this->size(dataset) > 1 )
+    throw std::runtime_error("Unable to read, data is array");
+
+  // allocate output
+  T out;
+
+  // read output
+  dataset.read(&out, HT);
+
+  return out;
+}
+
+// ---------------------------------------------- int ----------------------------------------------
 
 template<>
-inline bool File::read<bool>(std::string path)
+inline int File::read<int>(std::string path)
 {
-  try
-  {
-    // open dataset
-    H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
-    H5::DataSpace dataspace  = dataset.getSpace();
-    H5T_class_t   type_class = dataset.getTypeClass();
-
-    // check data type
-    if ( type_class != H5T_INTEGER )
-      throw std::runtime_error("Unable to read, incorrect data-type");
-
-    // check precision
-    // - get storage type
-    H5::IntType datatype = dataset.getIntType();
-    // - get number of bytes
-    size_t precision = datatype.getSize();
-    // - check precision
-    if ( precision != sizeof(int) )
-      throw std::runtime_error("Unable to read, incorrect precision");
-
-    // read rank (a.k.a number of dimensions)
-    int rank = dataspace.getSimpleExtentNdims();
-
-    // allocate HDF5-type
-    std::vector<hsize_t> dimsf;
-
-    // check the size (cannot be >1)
-    if ( rank != 0 )
-    {
-      // - allocate as HDF5-type
-      dimsf.resize(rank);
-      // - read
-      dataspace.getSimpleExtentDims(dimsf.data(), NULL);
-      // - total size
-      size_t size = 0;
-      for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(dimsf[i]);
-      // - check size
-      if ( size > 1 )
-        throw std::runtime_error("Unable to read, data is array");
-    }
-
-    // allocate output
-    int out;
-
-    // read output
-    dataset.read(&out, H5::PredType::NATIVE_INT);
-
-    // return output
-    return static_cast<bool>(out);
-  }
-  catch (...)
-  {
-    // open dataset
-    H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
-    H5::DataSpace dataspace  = dataset.getSpace();
-    H5T_class_t   type_class = dataset.getTypeClass();
-
-    // check data type
-    if ( type_class != H5T_INTEGER )
-      throw std::runtime_error("Unable to read, incorrect data-type");
-
-    // check precision
-    // - get storage type
-    H5::IntType datatype = dataset.getIntType();
-    // - get number of bytes
-    size_t precision = datatype.getSize();
-    // - check precision
-    if ( precision != sizeof(size_t) )
-      throw std::runtime_error("Unable to read, incorrect precision");
-
-    // read rank (a.k.a number of dimensions)
-    int rank = dataspace.getSimpleExtentNdims();
-
-    // allocate HDF5-type
-    std::vector<hsize_t> dimsf;
-
-    // check the size (cannot be >1)
-    if ( rank != 0 )
-    {
-      // - allocate as HDF5-type
-      dimsf.resize(rank);
-      // - read
-      dataspace.getSimpleExtentDims(dimsf.data(), NULL);
-      // - total size
-      size_t size = 0;
-      for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(dimsf[i]);
-      // - check size
-      if ( size > 1 )
-        throw std::runtime_error("Unable to read, data is array");
-    }
-
-    // allocate output
-    size_t out;
-
-    // read output
-    dataset.read(&out, H5::PredType::NATIVE_HSIZE);
-
-    // return output
-    return static_cast<bool>(out);
-  }
+  return read_scalar<int>(path,H5::PredType::NATIVE_INT);
 }
 
-// -------------------------------------------------------------------------------------------------
+// -------------------------------------------- size_t ---------------------------------------------
 
 template<>
 inline size_t File::read<size_t>(std::string path)
 {
-  // open dataset
-  H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
-  H5::DataSpace dataspace  = dataset.getSpace();
-  H5T_class_t   type_class = dataset.getTypeClass();
-
-  // check data type
-  if ( type_class != H5T_INTEGER )
-    throw std::runtime_error("Unable to read, incorrect data-type");
-
-  // check precision
-  // - get storage type
-  H5::IntType datatype = dataset.getIntType();
-  // - get number of bytes
-  size_t precision = datatype.getSize();
-  // - check precision
-  if ( precision != sizeof(size_t) )
-    throw std::runtime_error("Unable to read, incorrect precision");
-
-  // read rank (a.k.a number of dimensions)
-  int rank = dataspace.getSimpleExtentNdims();
-
-  // allocate HDF5-type
-  std::vector<hsize_t> dimsf;
-
-  // check the size (cannot be >1)
-  if ( rank != 0 )
-  {
-    // - allocate as HDF5-type
-    dimsf.resize(rank);
-    // - read
-    dataspace.getSimpleExtentDims(dimsf.data(), NULL);
-    // - total size
-    size_t size = 0;
-    for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(dimsf[i]);
-    // - check size
-    if ( size > 1 )
-      throw std::runtime_error("Unable to read, data is array");
-  }
-
-  // allocate output
-  size_t out;
-
-  // read output
-  dataset.read(&out, H5::PredType::NATIVE_HSIZE);
-
-  // return output
-  return out;
+  return read_scalar<size_t>(path,H5::PredType::NATIVE_HSIZE);
 }
 
-// -------------------------------------------------------------------------------------------------
+// --------------------------------------------- float ---------------------------------------------
+
+template<>
+inline float File::read<float>(std::string path)
+{
+  return read_scalar<float>(path,H5::PredType::NATIVE_FLOAT);
+}
+
+// -------------------------------------------- double ---------------------------------------------
 
 template<>
 inline double File::read<double>(std::string path)
 {
-  // open dataset
-  H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
-  H5::DataSpace dataspace  = dataset.getSpace();
-  H5T_class_t   type_class = dataset.getTypeClass();
-
-  // check data type
-  if ( type_class != H5T_FLOAT )
-    throw std::runtime_error("Unable to read, incorrect data-type");
-
-  // check precision
-  // - get storage type
-  H5::FloatType datatype = dataset.getFloatType();
-  // - get number of bytes
-  size_t precision = datatype.getSize();
-  // - check precision
-  if ( precision != sizeof(double) )
-    throw std::runtime_error("Unable to read, incorrect precision");
-
-  // read rank (a.k.a number of dimensions)
-  int rank = dataspace.getSimpleExtentNdims();
-
-  // allocate HDF5-type
-  std::vector<hsize_t> dimsf;
-
-  // check the size (cannot be >1)
-  if ( rank != 0 )
-  {
-    // - allocate as HDF5-type
-    dimsf.resize(rank);
-    // - read
-    dataspace.getSimpleExtentDims(dimsf.data(), NULL);
-    // - total size
-    size_t size = 0;
-    for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(dimsf[i]);
-    // - check size
-    if ( size > 1 )
-      throw std::runtime_error("Unable to read, data is array");
-  }
-
-  // allocate output
-  double out;
-
-  // read output
-  dataset.read(&out, H5::PredType::NATIVE_DOUBLE);
-
-  // return output
-  return out;
+  return read_scalar<double>(path,H5::PredType::NATIVE_DOUBLE);
 }
 
-// =================================================================================================
-// scalar - (part of) expandable array
-// =================================================================================================
+// ========================= WRITE SCALAR TO EXTENDABLE DATASET OF RANK 1 ==========================
 
-inline void File::write(std::string path, double input, size_t index, double fill_val, size_t chunk_size)
+// ------------------------------------------- template --------------------------------------------
+
+template<class T>
+inline void File::write(std::string path, T input, const H5::PredType& HT,
+  size_t index, T fill_val, size_t chunk_size
+)
 {
   // initialize if needed
   // --------------------
@@ -672,7 +677,7 @@ inline void File::write(std::string path, double input, size_t index, double fil
     // set rank
     int rank = 1;
 
-    // initial and maximum shape of the array, and initial offset
+    // set initial and maximum shape of the array, and initial offset
     // NB initially an array of size "index+1" will be written, filled with "fill_val" and "input"
     std::vector<hsize_t> shape(rank, index+1), max_shape(rank, H5S_UNLIMITED), offset(rank, 0);
 
@@ -680,16 +685,15 @@ inline void File::write(std::string path, double input, size_t index, double fil
     H5::DataSpace dataspace(rank, shape.data(), max_shape.data());
 
     // choose chunk size (chosen by the user, who knows what to expect)
-    std::vector<hsize_t> chunk_shape(rank);
-    chunk_shape[0] = static_cast<hsize_t>(chunk_size);
+    std::vector<hsize_t> chunk_shape(rank, static_cast<hsize_t>(chunk_size));
 
     // enable chunking
-    H5::DSetCreatPropList cpar;
-    cpar.setChunk(rank, chunk_shape.data());
-    cpar.setFillValue(H5::PredType::NATIVE_DOUBLE, &fill_val);
+    H5::DSetCreatPropList chunk_param;
+    chunk_param.setChunk(rank, chunk_shape.data());
+    chunk_param.setFillValue(HT, &fill_val);
 
-    // create new data-set
-    H5::DataSet dataset = m_fid.createDataSet(path.c_str(), H5::PredType::NATIVE_DOUBLE, dataspace, cpar);
+    // create new dataset
+    H5::DataSet dataset = m_file.createDataSet(path.c_str(), HT, dataspace, chunk_param);
 
     // make sure that the dataset is at least what we expect
     dataset.extend(shape.data());
@@ -698,12 +702,12 @@ inline void File::write(std::string path, double input, size_t index, double fil
     H5::DataSpace fspace = dataset.getSpace();
     fspace.selectHyperslab(H5S_SELECT_SET, shape.data(), offset.data());
 
-    // initial data array, filled with "fill_val" and with "input" at "tmp[index]"
-    std::vector<double> tmp(index+1, fill_val);
-    tmp[index] = input;
+    // initial data, filled with "fill_val" and with "input" at "init_data[index]"
+    std::vector<T> init_data(index+1, fill_val);
+    init_data[index] = input;
 
     // write data to the hyperslap
-    dataset.write(tmp.data(), H5::PredType::NATIVE_DOUBLE, dataspace, fspace);
+    dataset.write(init_data.data(), HT, dataspace, fspace);
 
     // flush the file if so requested
     if ( m_autoflush ) flush();
@@ -716,96 +720,220 @@ inline void File::write(std::string path, double input, size_t index, double fil
   // ------
 
   // open dataset
-  H5::DataSet   dataset   = m_fid.openDataSet(path.c_str());
+  H5::DataSet   dataset   = m_file.openDataSet(path.c_str());
   H5::DataSpace dataspace = dataset.getSpace();
 
-  // get the current size
+  // check precision
+  #ifndef HDF5PP_NDEBUG_PRECISION
+    if ( ! this->correct_presision<T>(dataset) )
+      throw std::runtime_error("Incorrect precision");
+  #endif
+
+  // get the current rank and shape
   // - read rank (a.k.a number of dimensions)
   int rank = dataspace.getSimpleExtentNdims();
-  // - allocate as HDF5-type
-  std::vector<hsize_t> size(rank);
-  // - read
-  dataspace.getSimpleExtentDims(size.data(), NULL);
+  // - allocate shape as HDF5-type
+  std::vector<hsize_t> shape(rank);
+  // - read shape
+  dataspace.getSimpleExtentDims(shape.data(), NULL);
 
   // check rank (here only simple arrays are supported)
   if ( rank != 1 )
     throw std::runtime_error("Can only extend rank 1 array with this function");
 
-  // extend size, if needed
-  size[0] = std::max(static_cast<size_t>(size[0]), index+1);
+  // extend shape, if needed
+  shape[0] = std::max(static_cast<size_t>(shape[0]), index+1);
 
   // process extension
-  dataset.extend(size.data());
+  dataset.extend(shape.data());
 
   // set offset
   std::vector<hsize_t> offset(rank, index);
 
   // pseudo-shape of the array
-  std::vector<hsize_t> ex_shape(rank, 1);
+  std::vector<hsize_t> extra_shape(rank, 1);
 
   // define the extra data-space
-  H5::DataSpace ex_datasape(rank, ex_shape.data());
+  H5::DataSpace extra_datasape(rank, extra_shape.data());
 
   // select a hyperslap
   H5::DataSpace fspace = dataset.getSpace();
-  fspace.selectHyperslab(H5S_SELECT_SET, ex_shape.data(), offset.data());
+  fspace.selectHyperslab(H5S_SELECT_SET, extra_shape.data(), offset.data());
 
   // write data to the hyperslap
-  dataset.write(&input, H5::PredType::NATIVE_DOUBLE, ex_datasape, fspace);
+  dataset.write(&input, HT, extra_datasape, fspace);
 
   // flush the file if so requested
   if ( m_autoflush ) flush();
 }
 
-// =================================================================================================
-// std::string
-// =================================================================================================
+// ---------------------------------------------- int ----------------------------------------------
 
-inline void File::write(std::string path, std::string input)
+inline void File::write(
+  std::string path, int input, size_t index, int fill_val, size_t chunk_size
+)
 {
-  // create group(s) if needed
-  createGroup(path);
-
-
-  H5::StrType   datatype(0, H5T_VARIABLE);
-  H5::DataSpace dataspace(H5S_SCALAR);
-
-  H5::DataSet dataset = m_fid.createDataSet(path.c_str(),datatype,dataspace);
-
-  dataset.write(input, datatype, dataspace);
-
-  // flush the file if so requested
-  if ( m_autoflush ) flush();
+  return write<int>(path,input,H5::PredType::NATIVE_INT,index,fill_val,chunk_size);
 }
 
-// -------------------------------------------------------------------------------------------------
+// -------------------------------------------- size_t ---------------------------------------------
 
-template<>
-inline std::string File::read<std::string>(std::string path)
+inline void File::write(
+  std::string path, size_t input, size_t index, size_t fill_val, size_t chunk_size
+)
 {
-  // open dataset, get data-type
-  H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
-  H5::DataSpace dataspace  = dataset.getSpace();
-  H5::StrType   datatype   = dataset.getStrType();
+  return write<size_t>(path,input,H5::PredType::NATIVE_HSIZE,index,fill_val,chunk_size);
+}
+
+// --------------------------------------------- float ---------------------------------------------
+
+inline void File::write(
+  std::string path, float input, size_t index, float fill_val, size_t chunk_size
+)
+{
+  return write<float>(path,input,H5::PredType::NATIVE_FLOAT,index,fill_val,chunk_size);
+}
+
+// -------------------------------------------- double ---------------------------------------------
+
+inline void File::write(
+  std::string path, double input, size_t index, double fill_val, size_t chunk_size
+)
+{
+  return write<double>(path,input,H5::PredType::NATIVE_DOUBLE,index,fill_val,chunk_size);
+}
+
+// ============================== READ SCALAR FROM DATASET OF RANK 1 ===============================
+
+// ------------------------------------------- template --------------------------------------------
+
+template<class T>
+inline T File::read(std::string path, const H5::PredType& HT, size_t index)
+{
+  // open dataset
+  H5::DataSet   dataset   = m_file.openDataSet(path.c_str());
+  H5::DataSpace dataspace = dataset.getSpace();
+
+  // check precision
+  #ifndef HDF5PP_NDEBUG_PRECISION
+    if ( ! this->correct_presision<T>(dataset) )
+      throw std::runtime_error("Incorrect precision");
+  #endif
+
+  // get the current rank and shape
+  // - read rank (a.k.a number of dimensions)
+  int rank = dataspace.getSimpleExtentNdims();
+  // - allocate shape as HDF5-type
+  std::vector<hsize_t> shape(rank);
+  // - read shape
+  dataspace.getSimpleExtentDims(shape.data(), NULL);
+
+  // check rank (here only simple arrays are supported)
+  if ( rank != 1 )
+    throw std::runtime_error("Can only extend rank 1 array with this function");
+
+  // check the shape
+  if ( index >= shape[0] )
+    throw std::runtime_error("Index out-of-bounds");
+
+  // set offset
+  std::vector<hsize_t> offset(rank, index);
+
+  // pseudo-shape of the array
+  std::vector<hsize_t> extra_shape(rank, 1);
+
+  // define the extra data-space
+  H5::DataSpace extra_datasape(rank, extra_shape.data());
+
+  // select a hyperslap
+  H5::DataSpace fspace = dataset.getSpace();
+  fspace.selectHyperslab(H5S_SELECT_SET, extra_shape.data(), offset.data());
 
   // allocate output
-  std::string out;
+  T out;
 
-  // read output
-  dataset.read(out, datatype, dataspace);
+  // read data from the hyperslap
+  dataset.read(&out, HT, extra_datasape, fspace);
 
   return out;
 }
 
-// =================================================================================================
-// std::vector
-// =================================================================================================
+// ---------------------------------------------- int ----------------------------------------------
 
-inline void File::write(std::string path, const std::vector<float> &input, const std::vector<size_t> &shape)
+template<>
+inline int File::read<int>(std::string path, size_t index)
+{
+  return read<int>(path,H5::PredType::NATIVE_INT,index);
+}
+
+// -------------------------------------------- size_t ---------------------------------------------
+
+template<>
+inline size_t File::read<size_t>(std::string path, size_t index)
+{
+  return read<size_t>(path,H5::PredType::NATIVE_HSIZE,index);
+}
+
+// --------------------------------------------- float ---------------------------------------------
+
+template<>
+inline float File::read<float>(std::string path, size_t index)
+{
+  return read<float>(path,H5::PredType::NATIVE_FLOAT,index);
+}
+
+// -------------------------------------------- double ---------------------------------------------
+
+template<>
+inline double File::read<double>(std::string path, size_t index)
+{
+  return read<double>(path,H5::PredType::NATIVE_DOUBLE,index);
+}
+
+// ====================== TEMPLATE TO WRITE ARRAY OF ARBITRARY SHAPE OR RANK =======================
+
+template<class T>
+inline void File::write(
+  std::string path, const T *input, const H5::PredType& HT, const std::vector<size_t> &shape
+)
 {
   // create group(s) if needed
   createGroup(path);
 
+  // shape of the array
+  // - get the rank of the array
+  size_t rank = shape.size();
+  // - allocate shape as HDF5-type
+  std::vector<hsize_t> dimsf(rank);
+  // - store shape in each direction
+  for ( size_t i = 0 ; i < rank ; ++i )
+    dimsf[i] = shape[i];
+
+  // define data-type, force little-endian storage
+  auto datatype(HT);
+  datatype.setOrder(H5T_ORDER_LE);
+
+  // define data-space
+  H5::DataSpace dataspace(rank, dimsf.data());
+
+  // add dataset to file
+  H5::DataSet dataset = m_file.createDataSet(path.c_str(), datatype, dataspace);
+
+  // store data
+  dataset.write(input, HT);
+
+  // flush the file if so requested
+  if ( m_autoflush ) flush();
+}
+
+// ======================= WRITE STD::VECTOR TO DATASET (OF ARBITRARY RANK) ========================
+
+// ------------------------------------------- template --------------------------------------------
+
+template<class T>
+inline void File::write(std::string path, const std::vector<T> &input, const H5::PredType& HT,
+  const std::vector<size_t> &shape)
+{
   // copy input shape
   std::vector<size_t> dims = shape;
 
@@ -816,610 +944,460 @@ inline void File::write(std::string path, const std::vector<float> &input, const
     dims[0] = input.size();
   }
 
-  // shape of the array
-  // - get the rank
-  size_t rank = dims.size();
-  // - allocate as HDF5-type
-  std::vector<hsize_t> dimsf(rank);
-  // - copy
-  for ( size_t i = 0 ; i < rank ; ++i )
-    dimsf[i] = dims[i];
-
-  // define storage shape / type
-  H5::DataSpace dataspace(rank,dimsf.data());
-  H5::FloatType datatype(H5::PredType::NATIVE_FLOAT);
-
-  // use little endian storage
-  datatype.setOrder(H5T_ORDER_LE);
-
-  // add data-set to file
-  H5::DataSet dataset = m_fid.createDataSet(path.c_str(),datatype,dataspace);
-
-  // store data
-  dataset.write(input.data(), H5::PredType::NATIVE_FLOAT);
-
-  // flush the file if so requested
-  if ( m_autoflush ) flush();
+  // write to file
+  write(path,input.data(),HT,dims);
 }
 
-// -------------------------------------------------------------------------------------------------
+// ---------------------------------------------- int ----------------------------------------------
 
-inline void File::write(std::string path, const std::vector<double> &input, const std::vector<size_t> &shape)
+inline void File::write(
+  std::string path, const std::vector<int> &input, const std::vector<size_t> &shape
+)
 {
-  // create group(s) if needed
-  createGroup(path);
-
-  // copy input shape
-  std::vector<size_t> dims = shape;
-
-  // default shape
-  if ( dims.size() == 0 )
-  {
-    dims.resize(1);
-    dims[0] = input.size();
-  }
-
-  // shape of the array
-  // - get the rank
-  size_t rank = dims.size();
-  // - allocate as HDF5-type
-  std::vector<hsize_t> dimsf(rank);
-  // - copy
-  for ( size_t i = 0 ; i < rank ; ++i )
-    dimsf[i] = dims[i];
-
-  // define storage shape / type
-  H5::DataSpace dataspace(rank,dimsf.data());
-  H5::FloatType datatype(H5::PredType::NATIVE_DOUBLE);
-
-  // use little endian storage
-  datatype.setOrder(H5T_ORDER_LE);
-
-  // add data-set to file
-  H5::DataSet dataset = m_fid.createDataSet(path.c_str(),datatype,dataspace);
-
-  // store data
-  dataset.write(input.data(), H5::PredType::NATIVE_DOUBLE);
-
-  // flush the file if so requested
-  if ( m_autoflush ) flush();
+  return write(path,input,H5::PredType::NATIVE_INT,shape);
 }
 
-// -------------------------------------------------------------------------------------------------
+// -------------------------------------------- size_t ---------------------------------------------
 
-template<>
-inline std::vector<double> File::read<std::vector<double>>(std::string path)
+inline void File::write(
+  std::string path, const std::vector<size_t> &input, const std::vector<size_t> &shape
+)
+{
+  return write(path,input,H5::PredType::NATIVE_HSIZE,shape);
+}
+
+// --------------------------------------------- float ---------------------------------------------
+
+inline void File::write(
+  std::string path, const std::vector<float> &input, const std::vector<size_t> &shape
+)
+{
+  return write(path,input,H5::PredType::NATIVE_FLOAT,shape);
+}
+
+// -------------------------------------------- double ---------------------------------------------
+
+inline void File::write(
+  std::string path, const std::vector<double> &input, const std::vector<size_t> &shape
+)
+{
+  return write(path,input,H5::PredType::NATIVE_DOUBLE,shape);
+}
+
+// ======================= READ STD::VECTOR FROM DATASET (OF ARBITRARY RANK) =======================
+
+// ------------------------------------------- template --------------------------------------------
+
+template<class T>
+inline std::vector<T> File::read_vector(std::string path, const H5::PredType& HT)
 {
   // open dataset
-  H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
-  H5::DataSpace dataspace  = dataset.getSpace();
-  H5T_class_t   type_class = dataset.getTypeClass();
-
-  // check data type
-  if ( type_class != H5T_FLOAT )
-    throw std::runtime_error("Unable to read, incorrect data-type");
+  H5::DataSet dataset = m_file.openDataSet(path.c_str());
 
   // check precision
-  // - get storage type
-  H5::FloatType datatype = dataset.getFloatType();
-  // - get number of bytes
-  size_t precision = datatype.getSize();
-  // - check precision
-  if ( precision != sizeof(double) )
-    throw std::runtime_error("Unable to read, incorrect precision");
-
-  // get the size
-  // - read rank (a.k.a number of dimensions)
-  int rank = dataspace.getSimpleExtentNdims();
-  // - allocate as HDF5-type
-  std::vector<hsize_t> dimsf(rank);
-  // - read
-  dataspace.getSimpleExtentDims(dimsf.data(), NULL);
-  // - total size
-  size_t size = 0;
-  for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(dimsf[i]);
+  #ifndef HDF5PP_NDEBUG_PRECISION
+    if ( ! this->correct_presision<T>(dataset) )
+      throw std::runtime_error("Incorrect precision");
+  #endif
 
   // allocate output
-  std::vector<double> data(size);
+  std::vector<T> data(this->size(dataset));
 
   // read data
-  dataset.read(const_cast<double*>(data.data()), H5::PredType::NATIVE_DOUBLE);
+  dataset.read(const_cast<T*>(data.data()), HT);
 
   // return output
   return data;
 }
 
-// -------------------------------------------------------------------------------------------------
+// ---------------------------------------------- int ----------------------------------------------
+
+template<>
+inline std::vector<int> File::read<std::vector<int>>(std::string path)
+{
+  return read_vector<int>(path,H5::PredType::NATIVE_INT);
+}
+
+// -------------------------------------------- size_t ---------------------------------------------
 
 template<>
 inline std::vector<size_t> File::read<std::vector<size_t>>(std::string path)
 {
-  // open dataset
-  H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
-  H5::DataSpace dataspace  = dataset.getSpace();
-  H5T_class_t   type_class = dataset.getTypeClass();
-
-  // check data type
-  if ( type_class != H5T_INTEGER )
-    throw std::runtime_error("Unable to read, incorrect data-type");
-
-  // check precision
-  // - get storage type
-  H5::IntType datatype = dataset.getIntType();
-  // - get number of bytes
-  size_t precision = datatype.getSize();
-  // - check precision
-  if ( precision != sizeof(size_t) )
-    throw std::runtime_error("Unable to read, incorrect precision");
-
-  // get the size
-  // - read rank (a.k.a number of dimensions)
-  int rank = dataspace.getSimpleExtentNdims();
-  // - allocate as HDF5-type
-  std::vector<hsize_t> dimsf(rank);
-  // - read
-  dataspace.getSimpleExtentDims(dimsf.data(), NULL);
-  // - total size
-  size_t size = 0;
-  for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(dimsf[i]);
-
-  // allocate output
-  std::vector<size_t> data(size);
-
-  // read data
-  dataset.read(const_cast<size_t*>(data.data()), H5::PredType::NATIVE_HSIZE);
-
-  // return output
-  return data;
+  return read_vector<size_t>(path,H5::PredType::NATIVE_HSIZE);
 }
 
-// =================================================================================================
-// Eigen matrix
-// =================================================================================================
+// --------------------------------------------- float ---------------------------------------------
+
+template<>
+inline std::vector<float> File::read<std::vector<float>>(std::string path)
+{
+  return read_vector<float>(path,H5::PredType::NATIVE_FLOAT);
+}
+
+// -------------------------------------------- double ---------------------------------------------
+
+template<>
+inline std::vector<double> File::read<std::vector<double>>(std::string path)
+{
+  return read_vector<double>(path,H5::PredType::NATIVE_DOUBLE);
+}
+
+// ================================= WRITE EIGEN COLUMN TO DATASET =================================
 
 #ifdef HDF5PP_EIGEN
 
-// -------------------------------------------------------------------------------------------------
+// ------------------------------------------- template --------------------------------------------
+
+template<class T>
+inline void File::write(std::string path,
+  const Eigen::Matrix<T,Eigen::Dynamic,1,Eigen::ColMajor> &input, const H5::PredType& HT)
+{
+  // set shape
+  std::vector<size_t> shape(1, input.size());
+
+  // write to file
+  write(path,input.data(),HT,shape);
+}
+
+// ---------------------------------------------- int ----------------------------------------------
 
 inline void File::write(
-  std::string path,
-  const Eigen::Matrix<size_t, Eigen::Dynamic, 1, Eigen::ColMajor> &input
-)
+  std::string path, const Eigen::Matrix<int,Eigen::Dynamic,1,Eigen::ColMajor> &input)
 {
-  // create group(s) if needed
-  createGroup(path);
-
-  // shape == size (1-d)
-  std::vector<hsize_t> dimsf(1);
-  dimsf[0] = input.size();
-
-  // define storage shape / type
-  H5::DataSpace dataspace(1,dimsf.data());
-  H5::IntType   datatype(H5::PredType::NATIVE_HSIZE);
-
-  // use little endian storage
-  datatype.setOrder(H5T_ORDER_LE);
-
-  // add data-set to file
-  H5::DataSet dataset = m_fid.createDataSet(path.c_str(),datatype,dataspace);
-
-  // store data
-  dataset.write(input.data(), H5::PredType::NATIVE_HSIZE);
-
-  // flush the file if so requested
-  if ( m_autoflush ) flush();
+  return write(path,input,H5::PredType::NATIVE_INT);
 }
 
-// -------------------------------------------------------------------------------------------------
+// -------------------------------------------- size_t ---------------------------------------------
 
 inline void File::write(
-  std::string path,
-  const Eigen::Matrix<double, Eigen::Dynamic, 1, Eigen::ColMajor> &input
-)
+  std::string path, const Eigen::Matrix<size_t,Eigen::Dynamic,1,Eigen::ColMajor> &input)
 {
-  // create group(s) if needed
-  createGroup(path);
-
-  // shape == size (1-d)
-  std::vector<hsize_t> dimsf(1);
-  dimsf[0] = input.size();
-
-  // define storage shape / type
-  H5::DataSpace dataspace(1,dimsf.data());
-  H5::FloatType datatype(H5::PredType::NATIVE_DOUBLE);
-
-  // use little endian storage
-  datatype.setOrder(H5T_ORDER_LE);
-
-  // add data-set to file
-  H5::DataSet dataset = m_fid.createDataSet(path.c_str(),datatype,dataspace);
-
-  // store data
-  dataset.write(input.data(), H5::PredType::NATIVE_DOUBLE);
-
-  // flush the file if so requested
-  if ( m_autoflush ) flush();
+  return write(path,input,H5::PredType::NATIVE_HSIZE);
 }
 
-// -------------------------------------------------------------------------------------------------
+// --------------------------------------------- float ---------------------------------------------
 
 inline void File::write(
-  std::string path,
-  const Eigen::Matrix<size_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> &input
-)
+  std::string path, const Eigen::Matrix<float,Eigen::Dynamic,1,Eigen::ColMajor> &input)
 {
-  // create group(s) if needed
-  createGroup(path);
-
-  // shape of the array (rank == 2)
-  std::vector<hsize_t> dimsf(2);
-  dimsf[0] = input.rows();
-  dimsf[1] = input.cols();
-
-  // define storage shape / type
-  H5::DataSpace dataspace(2,dimsf.data());
-  H5::IntType   datatype(H5::PredType::NATIVE_HSIZE);
-
-  // use little endian storage
-  datatype.setOrder(H5T_ORDER_LE);
-
-  // add data-set to file
-  H5::DataSet dataset = m_fid.createDataSet(path.c_str(),datatype,dataspace);
-
-  // store data
-  dataset.write(input.data(), H5::PredType::NATIVE_HSIZE);
-
-  // flush the file if so requested
-  if ( m_autoflush ) flush();
+  return write(path,input,H5::PredType::NATIVE_FLOAT);
 }
 
-// -------------------------------------------------------------------------------------------------
+// -------------------------------------------- double ---------------------------------------------
 
 inline void File::write(
-  std::string path,
-  const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> &input
-)
+  std::string path, const Eigen::Matrix<double,Eigen::Dynamic,1,Eigen::ColMajor> &input)
 {
-  // create group(s) if needed
-  createGroup(path);
-
-  // shape of the array (rank == 2)
-  std::vector<hsize_t> dimsf(2);
-  dimsf[0] = input.rows();
-  dimsf[1] = input.cols();
-
-  // define storage shape / type
-  H5::DataSpace dataspace(2,dimsf.data());
-  H5::FloatType datatype(H5::PredType::NATIVE_DOUBLE);
-
-  // use little endian storage
-  datatype.setOrder(H5T_ORDER_LE);
-
-  // add data-set to file
-  H5::DataSet dataset = m_fid.createDataSet(path.c_str(),datatype,dataspace);
-
-  // store data
-  dataset.write(input.data(), H5::PredType::NATIVE_DOUBLE);
-
-  // flush the file if so requested
-  if ( m_autoflush ) flush();
-}
-
-// -------------------------------------------------------------------------------------------------
-
-template<>
-inline Eigen::Matrix<size_t, Eigen::Dynamic, 1, Eigen::ColMajor>
-File::read<Eigen::Matrix<size_t, Eigen::Dynamic, 1, Eigen::ColMajor>>(std::string path)
-{
-  // open dataset
-  H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
-  H5::DataSpace dataspace  = dataset.getSpace();
-  H5T_class_t   type_class = dataset.getTypeClass();
-
-  // check data type
-  if ( type_class != H5T_INTEGER )
-    throw std::runtime_error("Unable to read, incorrect data-type");
-
-  // check precision
-  // - get storage type
-  H5::IntType datatype = dataset.getIntType();
-  // - get number of bytes
-  size_t precision = datatype.getSize();
-  // - check precision
-  if ( precision != sizeof(size_t) )
-    throw std::runtime_error("Unable to read, incorrect precision");
-
-  // get the size
-  // - read rank (a.k.a number of dimensions)
-  int rank = dataspace.getSimpleExtentNdims();
-  // - allocate as HDF5-type
-  std::vector<hsize_t> dimsf(rank);
-  // - read
-  dataspace.getSimpleExtentDims(dimsf.data(), NULL);
-  // - total size
-  size_t size = 0;
-  for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(dimsf[i]);
-
-  // allocate output
-  Eigen::Matrix<size_t, Eigen::Dynamic, 1, Eigen::ColMajor> data(size);
-
-  // read data
-  dataset.read(data.data(), H5::PredType::NATIVE_HSIZE);
-
-  // return output
-  return data;
-}
-
-// -------------------------------------------------------------------------------------------------
-
-template<>
-inline Eigen::Matrix<double, Eigen::Dynamic, 1, Eigen::ColMajor>
-File::read<Eigen::Matrix<double, Eigen::Dynamic, 1, Eigen::ColMajor>>(std::string path)
-{
-  // open dataset
-  H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
-  H5::DataSpace dataspace  = dataset.getSpace();
-  H5T_class_t   type_class = dataset.getTypeClass();
-
-  // check data type
-  if ( type_class != H5T_FLOAT )
-    throw std::runtime_error("Unable to read, incorrect data-type");
-
-  // check precision
-  // - get storage type
-  H5::FloatType datatype = dataset.getFloatType();
-  // - get number of bytes
-  size_t precision = datatype.getSize();
-  // - check precision
-  if ( precision != sizeof(double) )
-    throw std::runtime_error("Unable to read, incorrect precision");
-
-  // get the size
-  // - read rank (a.k.a number of dimensions)
-  int rank = dataspace.getSimpleExtentNdims();
-  // - allocate as HDF5-type
-  std::vector<hsize_t> dimsf(rank);
-  // - read
-  dataspace.getSimpleExtentDims(dimsf.data(), NULL);
-  // - total size
-  size_t size = 0;
-  for ( int i = 0 ; i < rank ; ++i ) size += static_cast<size_t>(dimsf[i]);
-
-  // allocate output
-  Eigen::Matrix<double, Eigen::Dynamic, 1, Eigen::ColMajor> data(size);
-
-  // read data
-  dataset.read(data.data(), H5::PredType::NATIVE_DOUBLE);
-
-  // return output
-  return data;
-}
-
-// -------------------------------------------------------------------------------------------------
-
-template<>
-inline Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
-File::read<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(std::string path)
-{
-  // open dataset
-  H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
-  H5::DataSpace dataspace  = dataset.getSpace();
-  H5T_class_t   type_class = dataset.getTypeClass();
-
-  // check data type
-  if ( type_class != H5T_FLOAT )
-    throw std::runtime_error("Unable to read, incorrect data-type");
-
-  // check precision
-  // - get storage type
-  H5::FloatType datatype = dataset.getFloatType();
-  // - get number of bytes
-  size_t precision = datatype.getSize();
-  // - check precision
-  if ( precision != sizeof(double) )
-    throw std::runtime_error("Unable to read, incorrect precision");
-
-  // read rank (a.k.a number of dimensions)
-  int rank = dataspace.getSimpleExtentNdims();
-  // check rank
-  if ( rank != 2 )
-    throw std::runtime_error("Unable to read, incorrect rank");
-
-  // get the size in each direction
-  // - allocate as HDF5-type
-  std::vector<hsize_t> dimsf(rank);
-  // - read
-  dataspace.getSimpleExtentDims(dimsf.data(), NULL);
-
-  // allocate output
-  Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> data(dimsf[0],dimsf[1]);
-
-  // read data
-  dataset.read(data.data(), H5::PredType::NATIVE_DOUBLE);
-
-  // return output
-  return data;
-}
-
-// -------------------------------------------------------------------------------------------------
-
-template<>
-inline Eigen::Matrix<size_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
-File::read<Eigen::Matrix<size_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(std::string path)
-{
-  // open dataset
-  H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
-  H5::DataSpace dataspace  = dataset.getSpace();
-  H5T_class_t   type_class = dataset.getTypeClass();
-
-  // check data type
-  if ( type_class != H5T_INTEGER )
-    throw std::runtime_error("Unable to read, incorrect data-type");
-
-  // check precision
-  // - get storage type
-  H5::IntType datatype = dataset.getIntType();
-  // - get number of bytes
-  size_t precision = datatype.getSize();
-  // - check precision
-  if ( precision != sizeof(size_t) )
-    throw std::runtime_error("Unable to read, incorrect precision");
-
-  // read rank (a.k.a number of dimensions)
-  int rank = dataspace.getSimpleExtentNdims();
-  // check rank
-  if ( rank != 2 )
-    throw std::runtime_error("Unable to read, incorrect rank");
-
-  // get the size in each direction
-  // - allocate as HDF5-type
-  std::vector<hsize_t> dimsf(rank);
-  // - read
-  dataspace.getSimpleExtentDims(dimsf.data(), NULL);
-
-  // allocate output
-  Eigen::Matrix<size_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> data(dimsf[0],dimsf[1]);
-
-  // read data
-  dataset.read(data.data(), H5::PredType::NATIVE_HSIZE);
-
-  // return output
-  return data;
+  return write(path,input,H5::PredType::NATIVE_DOUBLE);
 }
 
 // -------------------------------------------------------------------------------------------------
 
 #endif
 
-// =================================================================================================
-// cppmat matrix
-// =================================================================================================
+// ================================= WRITE EIGEN MATRIX TO DATASET =================================
 
-#ifdef HDF5PP_CPPMAT
+#ifdef HDF5PP_EIGEN
 
-// -------------------------------------------------------------------------------------------------
+// ------------------------------------------- template --------------------------------------------
 
-inline void File::write(std::string path, const cppmat::matrix<double> &input)
+template<class T>
+inline void File::write(std::string path,
+  const Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &input,
+  const H5::PredType& HT)
 {
-  // create group(s) if needed
-  createGroup(path);
+  // set shape
+  std::vector<size_t> shape(2);
+  shape[0] = input.rows();
+  shape[1] = input.cols();
 
-  // shape of the array
-  // - get the number of dimensions
-  size_t rank = input.ndim();
-  // - allocate as HDF5-type
-  std::vector<hsize_t> dimsf(rank);
-  // - store shape in each direction
-  for ( size_t i = 0 ; i < rank ; ++i )
-    dimsf[i] = input.shape(i);
+  // write to file
+  write(path,input.data(),HT,shape);
+}
 
-  // define storage shape / type
-  H5::DataSpace dataspace(rank,dimsf.data());
-  H5::FloatType datatype(H5::PredType::NATIVE_DOUBLE);
+// ---------------------------------------------- int ----------------------------------------------
 
-  // use little endian storage
-  datatype.setOrder(H5T_ORDER_LE);
+inline void File::write(std::string path,
+  const Eigen::Matrix<int,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &input)
+{
+  return write(path,input,H5::PredType::NATIVE_INT);
+}
 
-  // add data-set to file
-  H5::DataSet dataset = m_fid.createDataSet(path.c_str(),datatype,dataspace);
+// -------------------------------------------- size_t ---------------------------------------------
 
-  // store data
-  dataset.write(input.data(), H5::PredType::NATIVE_DOUBLE);
+inline void File::write(std::string path,
+  const Eigen::Matrix<size_t,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &input)
+{
+  return write(path,input,H5::PredType::NATIVE_HSIZE);
+}
 
-  // flush the file if so requested
-  if ( m_autoflush ) flush();
+// --------------------------------------------- float ---------------------------------------------
+
+inline void File::write(std::string path,
+  const Eigen::Matrix<float,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &input)
+{
+  return write(path,input,H5::PredType::NATIVE_FLOAT);
+}
+
+// -------------------------------------------- double ---------------------------------------------
+
+inline void File::write(std::string path,
+  const Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &input)
+{
+  return write(path,input,H5::PredType::NATIVE_DOUBLE);
 }
 
 // -------------------------------------------------------------------------------------------------
 
-template<>
-inline cppmat::matrix<double> File::read<cppmat::matrix<double>>(std::string path)
+#endif
+
+// ================================= READ TO DATASET EIGEN COLUMN =================================
+
+#ifdef HDF5PP_EIGEN
+
+// ------------------------------------------- template --------------------------------------------
+
+template<class T>
+inline Eigen::Matrix<T,Eigen::Dynamic,1,Eigen::ColMajor> File::read_eigen_column(std::string path,
+  const H5::PredType& HT)
 {
   // open dataset
-  H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
-  H5::DataSpace dataspace  = dataset.getSpace();
-  H5T_class_t   type_class = dataset.getTypeClass();
-
-  // check data type
-  if ( type_class != H5T_FLOAT )
-    throw std::runtime_error("Unable to read, incorrect data-type");
+  H5::DataSet dataset = m_file.openDataSet(path.c_str());
 
   // check precision
-  // - get storage type
-  H5::FloatType datatype = dataset.getFloatType();
-  // - get number of bytes
-  size_t precision = datatype.getSize();
-  // - check precision
-  if ( precision != sizeof(double) )
-    throw std::runtime_error("Unable to read, incorrect precision");
-
-  // get the size in each direction
-  // - read rank (a.k.a number of dimensions)
-  int rank = dataspace.getSimpleExtentNdims();
-  // - allocate as HDF5-type
-  std::vector<hsize_t> dimsf(rank);
-  // - allocate
-  std::vector<size_t> shape(rank);
-  // - read
-  dataspace.getSimpleExtentDims(dimsf.data(), NULL);
-  // - convert to vector
-  for ( int i = 0 ; i < rank ; ++i )
-    shape[i] = static_cast<size_t>(dimsf[i]);
+  #ifndef HDF5PP_NDEBUG_PRECISION
+    if ( ! this->correct_presision<T>(dataset) )
+      throw std::runtime_error("Incorrect precision");
+  #endif
 
   // allocate output
-  cppmat::matrix<double> data(shape);
+  Eigen::Matrix<T,Eigen::Dynamic,1,Eigen::ColMajor> data(this->size(dataset));
 
   // read data
-  dataset.read(data.data(), H5::PredType::NATIVE_DOUBLE);
+  dataset.read(data.data(), HT);
 
   // return output
   return data;
 }
 
+// ---------------------------------------------- int ----------------------------------------------
+
+template<>
+inline Eigen::Matrix<int,Eigen::Dynamic,1,Eigen::ColMajor>
+File::read<Eigen::Matrix<int,Eigen::Dynamic,1,Eigen::ColMajor>>(std::string path)
+{
+  return read_eigen_column<int>(path,H5::PredType::NATIVE_INT);
+}
+
+// -------------------------------------------- size_t ---------------------------------------------
+
+template<>
+inline Eigen::Matrix<size_t,Eigen::Dynamic,1,Eigen::ColMajor>
+File::read<Eigen::Matrix<size_t,Eigen::Dynamic,1,Eigen::ColMajor>>(std::string path)
+{
+  return read_eigen_column<size_t>(path,H5::PredType::NATIVE_HSIZE);
+}
+
+// --------------------------------------------- float ---------------------------------------------
+
+template<>
+inline Eigen::Matrix<float,Eigen::Dynamic,1,Eigen::ColMajor>
+File::read<Eigen::Matrix<float,Eigen::Dynamic,1,Eigen::ColMajor>>(std::string path)
+{
+  return read_eigen_column<float>(path,H5::PredType::NATIVE_FLOAT);
+}
+
+// -------------------------------------------- double ---------------------------------------------
+
+template<>
+inline Eigen::Matrix<double,Eigen::Dynamic,1,Eigen::ColMajor>
+File::read<Eigen::Matrix<double,Eigen::Dynamic,1,Eigen::ColMajor>>(std::string path)
+{
+  return read_eigen_column<double>(path,H5::PredType::NATIVE_DOUBLE);
+}
+
 // -------------------------------------------------------------------------------------------------
+
+#endif
+
+// ================================= READ TO DATASET EIGEN MATRIX ==================================
+
+#ifdef HDF5PP_EIGEN
+
+// ------------------------------------------- template --------------------------------------------
+
+template<class T>
+inline Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor>
+File::read_eigen_matrix(std::string path, const H5::PredType& HT)
+{
+  // open dataset
+  H5::DataSet dataset = m_file.openDataSet(path.c_str());
+
+  // check precision
+  #ifndef HDF5PP_NDEBUG_PRECISION
+    if ( ! this->correct_presision<T>(dataset) )
+      throw std::runtime_error("Incorrect precision");
+  #endif
+
+  // get shape
+  std::vector<size_t> shape = this->shape(dataset);
+
+  // check rank
+  if ( shape.size() != 2 )
+    throw std::runtime_error("Unable to read, incorrect rank");
+
+  // allocate output
+  Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> data(shape[0], shape[1]);
+
+  // read data
+  dataset.read(data.data(), HT);
+
+  // return output
+  return data;
+}
+
+// ---------------------------------------------- int ----------------------------------------------
+
+template<>
+inline Eigen::Matrix<int,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor>
+File::read<Eigen::Matrix<int,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor>>(std::string path)
+{
+  return read_eigen_matrix<int>(path,H5::PredType::NATIVE_INT);
+}
+
+// -------------------------------------------- size_t ---------------------------------------------
+
+template<>
+inline Eigen::Matrix<size_t,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor>
+File::read<Eigen::Matrix<size_t,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor>>(std::string path)
+{
+  return read_eigen_matrix<size_t>(path,H5::PredType::NATIVE_HSIZE);
+}
+
+// --------------------------------------------- float ---------------------------------------------
+
+template<>
+inline Eigen::Matrix<float,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor>
+File::read<Eigen::Matrix<float,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor>>(std::string path)
+{
+  return read_eigen_matrix<float>(path,H5::PredType::NATIVE_FLOAT);
+}
+
+// -------------------------------------------- double ---------------------------------------------
+
+template<>
+inline Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor>
+File::read<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor>>(std::string path)
+{
+  return read_eigen_matrix<double>(path,H5::PredType::NATIVE_DOUBLE);
+}
+
+// -------------------------------------------------------------------------------------------------
+
+#endif
+
+// ======================= WRITE CPPMAT-ND-ARRAY TO DATASET OF MATCHING RANK =======================
+
+#ifdef HDF5PP_CPPMAT
+
+// ------------------------------------------- template --------------------------------------------
+
+template<class T>
+inline void File::write(std::string path, const cppmat::matrix<T> &input, const H5::PredType& HT)
+{
+  write(path,input.data(),HT,input.shape());
+}
+
+// ---------------------------------------------- int ----------------------------------------------
+
+inline void File::write(std::string path, const cppmat::matrix<int> &input)
+{
+  return write(path,input,H5::PredType::NATIVE_INT);
+}
+
+// -------------------------------------------- size_t ---------------------------------------------
+
+inline void File::write(std::string path, const cppmat::matrix<size_t> &input)
+{
+  return write(path,input,H5::PredType::NATIVE_HSIZE);
+}
+
+// --------------------------------------------- float ---------------------------------------------
+
+inline void File::write(std::string path, const cppmat::matrix<float> &input)
+{
+  return write(path,input,H5::PredType::NATIVE_FLOAT);
+}
+
+// -------------------------------------------- double ---------------------------------------------
+
+inline void File::write(std::string path, const cppmat::matrix<double> &input)
+{
+  return write(path,input,H5::PredType::NATIVE_DOUBLE);
+}
+
+// -------------------------------------------------------------------------------------------------
+
+#endif
+
+// ================================= READ TO DATASET CPPMAT MATRIX =================================
+
+#ifdef HDF5PP_CPPMAT
+
+// ------------------------------------------- template --------------------------------------------
+
+template<class T>
+inline cppmat::matrix<T> File::read_cppmat(std::string path, const H5::PredType& HT)
+{
+  // open dataset
+  H5::DataSet dataset = m_file.openDataSet(path.c_str());
+
+  // check precision
+  #ifndef HDF5PP_NDEBUG_PRECISION
+    if ( ! this->correct_presision<T>(dataset) )
+      throw std::runtime_error("Incorrect precision");
+  #endif
+
+  // allocate output
+  cppmat::matrix<T> data(this->shape(dataset));
+
+  // read data
+  dataset.read(data.data(), HT);
+
+  // return output
+  return data;
+}
+
+// ---------------------------------------------- int ----------------------------------------------
+
+template<>
+inline cppmat::matrix<int> File::read<cppmat::matrix<int>>(std::string path)
+{
+  return read_cppmat<int>(path,H5::PredType::NATIVE_INT);
+}
+
+// -------------------------------------------- size_t ---------------------------------------------
 
 template<>
 inline cppmat::matrix<size_t> File::read<cppmat::matrix<size_t>>(std::string path)
 {
-  // open dataset
-  H5::DataSet   dataset    = m_fid.openDataSet(path.c_str());
-  H5::DataSpace dataspace  = dataset.getSpace();
-  H5T_class_t   type_class = dataset.getTypeClass();
+  return read_cppmat<size_t>(path,H5::PredType::NATIVE_HSIZE);
+}
 
-  // check data type
-  if ( type_class != H5T_INTEGER )
-    throw std::runtime_error("Unable to read, incorrect data-type");
+// --------------------------------------------- float ---------------------------------------------
 
-  // check precision
-  // - get storage type
-  H5::IntType datatype = dataset.getIntType();
-  // - get number of bytes
-  size_t precision = datatype.getSize();
-  // - check precision
-  if ( precision != sizeof(size_t) )
-    throw std::runtime_error("Unable to read, incorrect precision");
+template<>
+inline cppmat::matrix<float> File::read<cppmat::matrix<float>>(std::string path)
+{
+  return read_cppmat<float>(path,H5::PredType::NATIVE_FLOAT);
+}
 
-  // get the size in each direction
-  // - read rank (a.k.a number of dimensions)
-  int rank = dataspace.getSimpleExtentNdims();
-  // - allocate as HDF5-type
-  std::vector<hsize_t> dimsf(rank);
-  // - allocate
-  std::vector<size_t> shape(rank);
-  // - read
-  dataspace.getSimpleExtentDims(dimsf.data(), NULL);
-  // - convert to vector
-  for ( int i = 0 ; i < rank ; ++i )
-    shape[i] = static_cast<size_t>(dimsf[i]);
+// -------------------------------------------- double ---------------------------------------------
 
-  // allocate output
-  cppmat::matrix<size_t> data(shape);
-
-  // read data
-  dataset.read(data.data(), H5::PredType::NATIVE_HSIZE);
-
-  // return output
-  return data;
+template<>
+inline cppmat::matrix<double> File::read<cppmat::matrix<double>>(std::string path)
+{
+  return read_cppmat<double>(path,H5::PredType::NATIVE_DOUBLE);
 }
 
 // -------------------------------------------------------------------------------------------------
