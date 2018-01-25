@@ -14,7 +14,7 @@ One should still link with the HDF5 libraries. This is briefly described in :ref
 
 .. note::
 
-  Before proceeding, some words about optimization. Of course one should use optimization when compiling the release of the code (``-O2`` or ``-O3``). But it is also a good idea to switch of the assertions in the code (mostly checks on size) that facilitate easy debugging, but do cost time. Therefore, include the flag ``-DNDEBUG``. Note that this is all C++ standard. I.e. it should be no surprise, and it always a good idea to do.
+  Before proceeding, some words about optimization. Of course one should use optimization when compiling the release of the code (``-O2`` or ``-O3``). But it is also a good idea to switch of the assertions in the code (mostly checks on size) that facilitate easy debugging, but do cost time. Therefore, include the flag ``-DNDEBUG``. Note that this is all C++ standard. I.e. it should be no surprise, and it is always a good idea to do.
 
 Manual compiler flags
 =====================
@@ -54,8 +54,8 @@ Install
 
 To enable (semi-)automatic build, one should 'install' HDF5pp somewhere.
 
-Install system-wide (depends on your privileges)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Install systemwide (depends on your privileges)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 1.  Proceed to a (temporary) build directory. For example
 
@@ -99,7 +99,7 @@ Install in custom location (user)
 
 .. note:: **(Not recommended)**
 
-  If you do not wish to use ``CMake`` for the installation, or you want to do something custom. You can of course. Follow these steps:
+  If you do not wish to use ``CMake`` for the installation, or you want to do something custom. You can, of course. Follow these steps:
 
   1.  Copy the file ``src/HDF5pp.pc.in`` to ``HDF5pp.pc`` to some location that can be found by ``pkg_config`` (for example by adding ``export PKG_CONFIG_PATH=/path/to/HDF5pp.pc:$PKG_CONFIG_PATH`` to the ``.bashrc``).
 

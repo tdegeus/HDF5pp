@@ -62,15 +62,15 @@ Main functions:
 
 * ``std::vector<size_t> shape("/path/to/data")``
 
-  Return the shape of the data-array.
+  Return the shape of the data array.
 
 * ``size_t shape("/path/to/data", i)``
 
-  Return the shape of the data-array along axis ``i``.
+  Return the shape of the data array along axis ``i``.
 
 * ``size_t size("/path/to/data")``
 
-  Return the number of elements in the data-array.
+  Return the number of elements in the data array.
 
 Support functions:
 
@@ -216,7 +216,7 @@ Writing a vector (and optionally its 'dimensions') is done as follows:
 
 .. note::
 
-  In the HDF5 archive the data is stored as a matrix. However, because ``std::vector`` is just an array the shape has be extracted separately. For the richer classes below this is not necessary.
+  In the HDF5 archive the data is stored as a matrix. However, because ``std::vector`` is just an array the shape has to be extracted separately. For the richer classes below this is not necessary.
 
 Reading with Python does allow direct interpretation of the matrix
 
@@ -231,8 +231,8 @@ Reading with Python does allow direct interpretation of the matrix
 
 [:download:`source: example.py <examples/vector/example.py>`]
 
-cppmat - multi-dimensional arrays
----------------------------------
+cppmat - multidimensional arrays
+--------------------------------
 
 To enable this feature:
 
