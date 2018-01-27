@@ -39,7 +39,7 @@
 
 #define HDF5PP_WORLD_VERSION 0
 #define HDF5PP_MAJOR_VERSION 0
-#define HDF5PP_MINOR_VERSION 6
+#define HDF5PP_MINOR_VERSION 7
 
 #define HDF5PP_VERSION_AT_LEAST(x,y,z) \
   (HDF5PP_WORLD_VERSION>x || (HDF5PP_WORLD_VERSION>=x && \
@@ -674,6 +674,9 @@ inline void File::write(std::string path, T input, const H5::PredType& HT,
 
   if ( !exists(path) )
   {
+    // create group(s) if needed
+    createGroup(path);
+
     // set rank
     int rank = 1;
 
