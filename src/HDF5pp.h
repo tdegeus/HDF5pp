@@ -39,7 +39,7 @@
 
 #define HDF5PP_WORLD_VERSION 0
 #define HDF5PP_MAJOR_VERSION 0
-#define HDF5PP_MINOR_VERSION 7
+#define HDF5PP_MINOR_VERSION 8
 
 #define HDF5PP_VERSION_AT_LEAST(x,y,z) \
   (HDF5PP_WORLD_VERSION>x || (HDF5PP_WORLD_VERSION>=x && \
@@ -71,7 +71,7 @@ public:
 
   File(){};
 
-  File(std::string name, std::string mode="w", bool autoflush=true);
+  File(const std::string &name, const std::string &mode="w", bool autoflush=true);
 
   // support functions
   // -----------------
@@ -243,19 +243,39 @@ public:
   template<class T>
   void write(std::string path, const cppmat::matrix<T> &data, const H5::PredType& HT);
 
-  // (advanced) read data of arbitrary type to cppmat matrix
+  // (advanced) read data of arbitrary type to cppmat::matrix
   template<class T>
-  cppmat::matrix<T> read_cppmat(std::string path, const H5::PredType& HT);
+  cppmat::matrix<T> read_cppmat_matrix(std::string path, const H5::PredType& HT);
+
+  // (advanced) read data of arbitrary type to cppmat::matrix2
+  template<class T>
+  cppmat::matrix2<T> read_cppmat_matrix2(std::string path, const H5::PredType& HT);
+
+  // (advanced) read data of arbitrary type to cppmat::vector
+  template<class T>
+  cppmat::vector<T> read_cppmat_vector(std::string path, const H5::PredType& HT);
 
   #endif
 };
 
 // ========================================= CONSTRUCTORS ==========================================
 
-inline File::File(std::string name, std::string mode, bool autoflush)
+inline File::File(const std::string &name, const std::string &mode_, bool autoflush)
 {
+  // copy mode
+  std::string mode = mode_;
+
   // copy filename
   m_fname = name;
+
+  // check if the file exists
+  if ( mode == "r" )
+  {
+     // - find file
+    std::ifstream infile(m_fname);
+    // - throw error if file does not exist
+    if ( ! infile.good() ) std::runtime_error("HDF5pp: file '"+name+"' does not exist");
+  }
 
   // check if file exists, otherwise set write mode to "w"
   if ( mode == "a" or mode == "r+" )
@@ -1350,7 +1370,7 @@ inline void File::write(std::string path, const cppmat::matrix<double> &input)
 // ------------------------------------------- template --------------------------------------------
 
 template<class T>
-inline cppmat::matrix<T> File::read_cppmat(std::string path, const H5::PredType& HT)
+inline cppmat::matrix<T> File::read_cppmat_matrix(std::string path, const H5::PredType& HT)
 {
   // open dataset
   H5::DataSet dataset = m_file.openDataSet(path.c_str());
@@ -1376,7 +1396,7 @@ inline cppmat::matrix<T> File::read_cppmat(std::string path, const H5::PredType&
 template<>
 inline cppmat::matrix<int> File::read<cppmat::matrix<int>>(std::string path)
 {
-  return read_cppmat<int>(path,H5::PredType::NATIVE_INT);
+  return read_cppmat_matrix<int>(path,H5::PredType::NATIVE_INT);
 }
 
 // -------------------------------------------- size_t ---------------------------------------------
@@ -1384,7 +1404,7 @@ inline cppmat::matrix<int> File::read<cppmat::matrix<int>>(std::string path)
 template<>
 inline cppmat::matrix<size_t> File::read<cppmat::matrix<size_t>>(std::string path)
 {
-  return read_cppmat<size_t>(path,H5::PredType::NATIVE_HSIZE);
+  return read_cppmat_matrix<size_t>(path,H5::PredType::NATIVE_HSIZE);
 }
 
 // --------------------------------------------- float ---------------------------------------------
@@ -1392,7 +1412,7 @@ inline cppmat::matrix<size_t> File::read<cppmat::matrix<size_t>>(std::string pat
 template<>
 inline cppmat::matrix<float> File::read<cppmat::matrix<float>>(std::string path)
 {
-  return read_cppmat<float>(path,H5::PredType::NATIVE_FLOAT);
+  return read_cppmat_matrix<float>(path,H5::PredType::NATIVE_FLOAT);
 }
 
 // -------------------------------------------- double ---------------------------------------------
@@ -1400,7 +1420,149 @@ inline cppmat::matrix<float> File::read<cppmat::matrix<float>>(std::string path)
 template<>
 inline cppmat::matrix<double> File::read<cppmat::matrix<double>>(std::string path)
 {
-  return read_cppmat<double>(path,H5::PredType::NATIVE_DOUBLE);
+  return read_cppmat_matrix<double>(path,H5::PredType::NATIVE_DOUBLE);
+}
+
+// -------------------------------------------------------------------------------------------------
+
+#endif
+
+// ================================ READ TO DATASET CPPMAT MATRIX2 =================================
+
+#ifdef HDF5PP_CPPMAT
+
+// ------------------------------------------- template --------------------------------------------
+
+template<class T>
+inline cppmat::matrix2<T> File::read_cppmat_matrix2(std::string path, const H5::PredType& HT)
+{
+  // open dataset
+  H5::DataSet dataset = m_file.openDataSet(path.c_str());
+
+  // check precision
+  #ifndef HDF5PP_NDEBUG_PRECISION
+    if ( ! this->correct_presision<T>(dataset) )
+      throw std::runtime_error("Incorrect precision: "+path);
+  #endif
+
+  // get shape
+  std::vector<size_t> shape = this->shape(dataset);
+
+  // check shape
+  if ( shape.size() != 2 )
+    throw std::runtime_error("Incorrect dimensions: "+path);
+
+  // allocate output
+  cppmat::matrix2<T> data(shape[0], shape[1]);
+
+  // read data
+  dataset.read(data.data(), HT);
+
+  // return output
+  return data;
+}
+
+// ---------------------------------------------- int ----------------------------------------------
+
+template<>
+inline cppmat::matrix2<int> File::read<cppmat::matrix2<int>>(std::string path)
+{
+  return read_cppmat_matrix2<int>(path,H5::PredType::NATIVE_INT);
+}
+
+// -------------------------------------------- size_t ---------------------------------------------
+
+template<>
+inline cppmat::matrix2<size_t> File::read<cppmat::matrix2<size_t>>(std::string path)
+{
+  return read_cppmat_matrix2<size_t>(path,H5::PredType::NATIVE_HSIZE);
+}
+
+// --------------------------------------------- float ---------------------------------------------
+
+template<>
+inline cppmat::matrix2<float> File::read<cppmat::matrix2<float>>(std::string path)
+{
+  return read_cppmat_matrix2<float>(path,H5::PredType::NATIVE_FLOAT);
+}
+
+// -------------------------------------------- double ---------------------------------------------
+
+template<>
+inline cppmat::matrix2<double> File::read<cppmat::matrix2<double>>(std::string path)
+{
+  return read_cppmat_matrix2<double>(path,H5::PredType::NATIVE_DOUBLE);
+}
+
+// -------------------------------------------------------------------------------------------------
+
+#endif
+
+// ================================= READ TO DATASET CPPMAT VECTOR =================================
+
+#ifdef HDF5PP_CPPMAT
+
+// ------------------------------------------- template --------------------------------------------
+
+template<class T>
+inline cppmat::vector<T> File::read_cppmat_vector(std::string path, const H5::PredType& HT)
+{
+  // open dataset
+  H5::DataSet dataset = m_file.openDataSet(path.c_str());
+
+  // check precision
+  #ifndef HDF5PP_NDEBUG_PRECISION
+    if ( ! this->correct_presision<T>(dataset) )
+      throw std::runtime_error("Incorrect precision: "+path);
+  #endif
+
+  // get shape
+  std::vector<size_t> shape = this->shape(dataset);
+
+  // check shape
+  if ( shape.size() != 1 )
+    throw std::runtime_error("Incorrect dimensions: "+path);
+
+  // allocate output
+  cppmat::vector<T> data(shape[0]);
+
+  // read data
+  dataset.read(data.data(), HT);
+
+  // return output
+  return data;
+}
+
+// ---------------------------------------------- int ----------------------------------------------
+
+template<>
+inline cppmat::vector<int> File::read<cppmat::vector<int>>(std::string path)
+{
+  return read_cppmat_vector<int>(path,H5::PredType::NATIVE_INT);
+}
+
+// -------------------------------------------- size_t ---------------------------------------------
+
+template<>
+inline cppmat::vector<size_t> File::read<cppmat::vector<size_t>>(std::string path)
+{
+  return read_cppmat_vector<size_t>(path,H5::PredType::NATIVE_HSIZE);
+}
+
+// --------------------------------------------- float ---------------------------------------------
+
+template<>
+inline cppmat::vector<float> File::read<cppmat::vector<float>>(std::string path)
+{
+  return read_cppmat_vector<float>(path,H5::PredType::NATIVE_FLOAT);
+}
+
+// -------------------------------------------- double ---------------------------------------------
+
+template<>
+inline cppmat::vector<double> File::read<cppmat::vector<double>>(std::string path)
+{
+  return read_cppmat_vector<double>(path,H5::PredType::NATIVE_DOUBLE);
 }
 
 // -------------------------------------------------------------------------------------------------
