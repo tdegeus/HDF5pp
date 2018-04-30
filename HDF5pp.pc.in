@@ -6,4 +6,4 @@ Description: C++ wrapper of the HDF5 library
 Requires:
 Version: @HDF5PP_VERSION_NUMBER@
 Libs:
-Cflags: -I${prefix}/@INCLUDE_INSTALL_DIR@
+Cflags: -I${prefix}/@HDF5PP_INCLUDE_DIR@
