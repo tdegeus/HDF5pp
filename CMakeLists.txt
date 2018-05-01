@@ -18,6 +18,11 @@ set(parse_version src/${PROJECT_NAME}.h)
 # header files
 set(headers src/${PROJECT_NAME}.h)
 
+# binaries
+set(binaries
+  "bin/HDF5pp_repair"
+)
+
 # automatically parse the version number
 file(READ "${parse_version}" version)
 string(REGEX MATCH "define[ \t]+HDF5PP_WORLD_VERSION[ \t]+([0-9]+)" _ "${version}")
@@ -41,6 +46,9 @@ set(fpkg                     "${PROJECT_NAME}.pc")
 
 # options
 # -------
+
+# install binaries
+option(BIN "Install binaries" ON)
 
 # configure pkg-config (default: on)
 option(PKGCONFIG "Build pkg-config ${fpkg} file" ON)
@@ -84,6 +92,11 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${fcmake} DESTINATION ${CMAKEPACKAGE_I
 
 # header files
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/${headers} DESTINATION ${INCLUDE_INSTALL_DIR})
+
+# install binaries
+if(BIN)
+  install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/${binaries} DESTINATION bin)
+endif()
 
 # print information to screen
 # ---------------------------

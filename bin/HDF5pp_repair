@@ -1,84 +1,115 @@
 #!/usr/bin/env python3
 '''HDF5pp_repair
-
   Extract readable data from a HDF5-file and copy it to a new HDF5-file.
 
 Usage:
   HDF5pp_repair [options] <old.hdf5> <new.hdf5>
 
 Arguments:
-  <old.hdf5>          Old HDF5-file, containing corrupted data.
-  <new.hdf5>          New HDF5-file, which will contain as much as possible data from <old.hdf5>.
+  <old.hdf5>  Source HDF5-file, possibly containing corrupted data.
+  <new.hdf5>  Destination HDF5-file, which will contain as much as possible data from <old.hdf5>.
 
 Options:
-  -h  --help          Show help.
-      --version       Show version.
+  -f, --force     Force continuation, do not prompt for existing <new.hdf5>
+  -h, --help      Show help.
+      --version   Show version.
 '''
 
+# ==================================================================================================
+
 import numpy as np
-import h5py, docopt
+import sys, os, h5py, docopt
 
-# --------------------------------------------------------------------------------------------------
+# ==================================================================================================
 
-def getdatasets(key,archive):
+def confirm(message='Proceed [y/n]?\n'):
+  while True:
+    user = input(message)
+    if not user                     : print('Please enter y or n.'); continue
+    if user not in ['y','Y','n','N']: print('Please enter y or n.'); continue
+    if user     in ['y','Y'        ]: return True
+    if user     in ['n','N'        ]: return False
 
-  if key[-1] != '/': key += '/'
+# ==================================================================================================
 
-  out = []
+def quit(message):
+  if not confirm(message):
+    sys.exit(1)
 
-  for name in archive[key]:
+# ==================================================================================================
 
-    path = key + name
+def getdatasets(archive,path="/"):
 
-    if isinstance(archive[path], h5py.Dataset):
-      out += [path]
+  # append trailing slash
+  if path[-1] != '/': path += '/'
+
+  # empty list of paths
+  datasets = []
+
+  # loop over all fields in the current 'path'
+  for name in archive[path]:
+
+    # convert to absolute path
+    abspath = path + name
+
+    # current path is a Dataset -> append to 'datasets' if possible
+    if isinstance(archive[abspath], h5py.Dataset):
+      # - try reading
+      try:
+        archive[abspath]
+        read = True
+      except:
+        read = False
+      # - append to 'datasets'
+      if read:
+        datasets += [abspath]
+    # current path is not a Dataset -> read all fields from this path downwards
     else:
-      try   : out += getdatasets(path,archive)
-      except: pass
+      datasets += getdatasets(archive,abspath)
 
-  return out
+  # return list of paths
+  return datasets
 
-# --------------------------------------------------------------------------------------------------
+# ==================================================================================================
+
+def copydatasets(old,new,datasets):
+
+  # get the group-names from the lists of datasets
+  groups   = list(set([i[::-1].split('/',1)[1][::-1] for i in datasets]))
+  groups   = [i for i in groups if len(i)>0]
+
+  # sort groups based on depth
+  idx      = np.argsort(np.array([len(i.split('/')) for i in groups]))
+  groups   = [groups[i] for i in idx]
+
+  # create all groups that contain a dataset
+  for group in groups:
+    new.create_group(group)
+
+  # copy datasets
+  for path in datasets:
+
+    # - get group name
+    group = path[::-1].split('/',1)[1][::-1]
+
+    # - minimum group name
+    if len(group) == 0: group = '/'
+
+    # - copy data
+    old.copy(path, new[group])
+
+# ==================================================================================================
 
 # parse command-line options
 args = docopt.docopt(__doc__,version='0.0.2')
 
+# check
+if os.path.isfile(args['<new.hdf5>']) and not args['--force']:
+  quit('File "{0:s}" already exists, continue [y/n]?')
+
 # open HDF5-files
-data     = h5py.File(args['<old.hdf5>'],'r')
-new_data = h5py.File(args['<new.hdf5>'],'w')
+old = h5py.File(args['<old.hdf5>'],'r')
+new = h5py.File(args['<new.hdf5>'],'w')
 
-# read as much datasets as possible from the old HDF5-file
-datasets = getdatasets('/',data)
-
-# get the group-names from the lists of datasets
-groups = list(set([i[::-1].split('/',1)[1][::-1] for i in datasets]))
-groups = [i for i in groups if len(i)>0]
-
-# sort groups based on depth
-idx    = np.argsort(np.array([len(i.split('/')) for i in groups]))
-groups = [groups[i] for i in idx]
-
-# create all groups that contain dataset that will be copied
-for group in groups:
-  new_data.create_group(group)
-
-# copy datasets
-for path in datasets:
-
-  # - check path
-  if path not in data: continue
-
-  # - try reading
-  try   : data[path]
-  except: continue
-
-  # - get group name
-  group = path[::-1].split('/',1)[1][::-1]
-
-  # - minimum group name
-  if len(group) == 0: group = '/'
-
-  # - copy data
-  data.copy(path, new_data[group])
-
-
+# copy datasets (if read is successful)
+copydatasets(old,new,getdatasets(old))
