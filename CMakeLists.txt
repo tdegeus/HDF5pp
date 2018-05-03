@@ -21,6 +21,7 @@ set(headers src/${PROJECT_NAME}.h)
 # binaries
 set(binaries
   "bin/HDF5pp_repair"
+  "bin/HDF5pp_merge"
 )
 
 # automatically parse the version number

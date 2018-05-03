@@ -13,6 +13,8 @@ Options:
   -f, --force     Force continuation, overwrite existing files.
   -h, --help      Show help.
       --version   Show version.
+
+(c - MIT) T.W.J. de Geus | tom@geus.me | www.geus.me | github.com/tdegeus/HDF5pp
 '''
 
 # ==================================================================================================
@@ -184,3 +186,7 @@ dest   = h5py.File(args['<destination>'], 'w')
 
 # copy datasets (of which reading is possible)
 copydatasets(source, dest, verify(source,getdatasets(source)) )
+
+# close HDF5-files
+source.close()
+dest  .close()

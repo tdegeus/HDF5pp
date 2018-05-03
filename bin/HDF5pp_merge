@@ -11,8 +11,11 @@ Arguments:
 
 Options:
   -p, --path=<N>  Root under which to store the source. (default: relative directory of source)
+  -v, --verbose   Verbose operations.
   -h, --help      Show help.
       --version   Show version.
+
+(c - MIT) T.W.J. de Geus | tom@geus.me | www.geus.me | github.com/tdegeus/HDF5pp
 '''
 
 # ==================================================================================================
@@ -183,6 +186,10 @@ if root is None:
 # - convert to absolute path
 root = abspath(root)
 
+# print progress
+if args['--verbose']:
+  print('Merging {0:s} -> {1:s}:{2:s}'.format(args['<source>'],args['<destination>'],root))
+
 # open HDF5-files
 source = h5py.File(args['<source>'     ], 'r')
 dest   = h5py.File(args['<destination>'], 'a')
@@ -198,3 +205,7 @@ if exists(dest, dest_datasets): error('Dataset "{0:s}" exists'.format(exists(des
 
 # merge
 copydatasets(source, dest, source_datasets, dest_datasets)
+
+# close HDF5-files
+source.close()
+dest  .close()

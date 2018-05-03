@@ -261,7 +261,7 @@ Writing and reading matrices of arbitrary dimensions can be done as follows:
 
   int main()
   {
-    cppmat::matrix<double> data({2,3,4,5});
+    cppmat::array<double> data({2,3,4,5});
 
     // ... fill "data"
 
@@ -269,7 +269,7 @@ Writing and reading matrices of arbitrary dimensions can be done as follows:
 
     file.write("/path/to/data", data);
 
-    cppmat::matrix<double> read_data = file.read<cppmat::matrix<double>>("/path/to/data");
+    cppmat::array<double> read_data = file.read<cppmat::array<double>>("/path/to/data");
 
     return 0;
   }
