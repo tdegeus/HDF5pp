@@ -19,8 +19,12 @@ Options:
 
 # ==================================================================================================
 
+# temporary fix: suppress warning from h5py
+import warnings
+warnings.filterwarnings("ignore")
+
 import numpy as np
-import sys, os, h5py, docopt
+import sys, os, re, h5py, docopt
 
 # ==================================================================================================
 
