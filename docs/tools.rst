@@ -30,3 +30,5 @@ Merge a HDF5-file into another HDF5-file.
   .. code-block:: bash
 
     find . -iname '*.hdf5' -exec HDF5pp_merge {} output.hdf5 \;
+
+  In this case ``HDF5pp_merge`` is called from each HDF5-file that is found. Note that if ``output.hdf5`` already existed, it is skipped by ``HDF5pp_merge``.
