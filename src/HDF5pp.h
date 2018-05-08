@@ -39,7 +39,7 @@
 
 #define HDF5PP_WORLD_VERSION 0
 #define HDF5PP_MAJOR_VERSION 0
-#define HDF5PP_MINOR_VERSION 8
+#define HDF5PP_MINOR_VERSION 9
 
 #define HDF5PP_VERSION_AT_LEAST(x,y,z) \
   (HDF5PP_WORLD_VERSION>x || (HDF5PP_WORLD_VERSION>=x && \
@@ -300,7 +300,7 @@ inline File::File(const std::string &name, const std::string &mode_, bool autofl
   if      ( mode == "r"         ) m_file = H5::H5File(m_fname.c_str(),H5F_ACC_RDONLY);
   else if ( mode == "w"         ) m_file = H5::H5File(m_fname.c_str(),H5F_ACC_TRUNC );
   else if ( mode == "a" or "r+" ) m_file = H5::H5File(m_fname.c_str(),H5F_ACC_RDWR  );
-  else throw std::runtime_error("HDF5pp: unknown mode to open file");
+  else throw std::runtime_error("HDF5pp: unknown mode '"+mode+"'");
 
   // store flush settings
   m_autoflush = autoflush;
@@ -417,7 +417,7 @@ inline size_t File::shape(std::string path, size_t i)
   int rank = dataspace.getSimpleExtentNdims();
   // - check rank
   if ( rank < static_cast<int>(i) )
-    throw std::runtime_error("Cannot read, rank of data lower that requested");
+    throw std::runtime_error("Cannot read '"+path+"', rank of data lower that requested");
   // - allocate as HDF5-type
   std::vector<hsize_t> dimsf(rank);
   // - read
@@ -642,12 +642,12 @@ inline T File::read_scalar(std::string path, const H5::PredType& HT)
   // check precision
   #ifndef HDF5PP_NDEBUG_PRECISION
     if ( ! this->correct_presision<T>(dataset) )
-      throw std::runtime_error("Incorrect precision: "+path);
+      throw std::runtime_error("Incorrect precision '"+path+"'");
   #endif
 
   // check size
   if ( this->size(dataset) > 1 )
-    throw std::runtime_error("Unable to read, data is array");
+    throw std::runtime_error("Unable to read '"+path+"', data is array");
 
   // allocate output
   T out;
@@ -759,7 +759,7 @@ inline void File::write(std::string path, T input, const H5::PredType& HT,
   // check precision
   #ifndef HDF5PP_NDEBUG_PRECISION
     if ( ! this->correct_presision<T>(dataset) )
-      throw std::runtime_error("Incorrect precision: "+path);
+      throw std::runtime_error("Incorrect precision '"+path+"'");
   #endif
 
   // get the current rank and shape
@@ -772,7 +772,7 @@ inline void File::write(std::string path, T input, const H5::PredType& HT,
 
   // check rank (here only simple arrays are supported)
   if ( rank != 1 )
-    throw std::runtime_error("Can only extend rank 1 array with this function");
+    throw std::runtime_error("Can only extend rank 1 array with this function ('"+path+"')");
 
   // extend shape, if needed
   shape[0] = std::max(static_cast<size_t>(shape[0]), index+1);
@@ -850,7 +850,7 @@ inline T File::read(std::string path, const H5::PredType& HT, size_t index)
   // check precision
   #ifndef HDF5PP_NDEBUG_PRECISION
     if ( ! this->correct_presision<T>(dataset) )
-      throw std::runtime_error("Incorrect precision: "+path);
+      throw std::runtime_error("Incorrect precision '"+path+"'");
   #endif
 
   // get the current rank and shape
@@ -863,11 +863,11 @@ inline T File::read(std::string path, const H5::PredType& HT, size_t index)
 
   // check rank (here only simple arrays are supported)
   if ( rank != 1 )
-    throw std::runtime_error("Can only extend rank 1 array with this function");
+    throw std::runtime_error("Can only extend rank 1 array with this function ('"+path+"')");
 
   // check the shape
   if ( index >= shape[0] )
-    throw std::runtime_error("Index out-of-bounds");
+    throw std::runtime_error("Index out-of-bounds ('"+path+"')");
 
   // set offset
   std::vector<hsize_t> offset(rank, index);
@@ -1030,7 +1030,7 @@ inline std::vector<T> File::read_vector(std::string path, const H5::PredType& HT
   // check precision
   #ifndef HDF5PP_NDEBUG_PRECISION
     if ( ! this->correct_presision<T>(dataset) )
-      throw std::runtime_error("Incorrect precision: "+path);
+      throw std::runtime_error("Incorrect precision '"+path+"'");
   #endif
 
   // allocate output
@@ -1200,7 +1200,7 @@ inline Eigen::Matrix<T,Eigen::Dynamic,1,Eigen::ColMajor> File::read_eigen_column
   // check precision
   #ifndef HDF5PP_NDEBUG_PRECISION
     if ( ! this->correct_presision<T>(dataset) )
-      throw std::runtime_error("Incorrect precision: "+path);
+      throw std::runtime_error("Incorrect precision '"+path+"'");
   #endif
 
   // allocate output
@@ -1269,7 +1269,7 @@ File::read_eigen_matrix(std::string path, const H5::PredType& HT)
   // check precision
   #ifndef HDF5PP_NDEBUG_PRECISION
     if ( ! this->correct_presision<T>(dataset) )
-      throw std::runtime_error("Incorrect precision: "+path);
+      throw std::runtime_error("Incorrect precision '"+path+"'");
   #endif
 
   // get shape
@@ -1277,7 +1277,7 @@ File::read_eigen_matrix(std::string path, const H5::PredType& HT)
 
   // check rank
   if ( shape.size() != 2 )
-    throw std::runtime_error("Unable to read, incorrect rank");
+    throw std::runtime_error("Unable to read, incorrect rank ('"+path+"')");
 
   // allocate output
   Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> data(shape[0], shape[1]);
@@ -1432,7 +1432,7 @@ inline cppmat::array<T> File::read_cppmat_matrix(std::string path, const H5::Pre
   // check precision
   #ifndef HDF5PP_NDEBUG_PRECISION
     if ( ! this->correct_presision<T>(dataset) )
-      throw std::runtime_error("Incorrect precision: "+path);
+      throw std::runtime_error("Incorrect precision '"+path+"'");
   #endif
 
   // allocate output
@@ -1496,7 +1496,7 @@ inline cppmat::matrix<T> File::read_cppmat_matrix2(std::string path, const H5::P
   // check precision
   #ifndef HDF5PP_NDEBUG_PRECISION
     if ( ! this->correct_presision<T>(dataset) )
-      throw std::runtime_error("Incorrect precision: "+path);
+      throw std::runtime_error("Incorrect precision '"+path+"'");
   #endif
 
   // get shape
@@ -1504,7 +1504,7 @@ inline cppmat::matrix<T> File::read_cppmat_matrix2(std::string path, const H5::P
 
   // check shape
   if ( shape.size() != 2 )
-    throw std::runtime_error("Incorrect dimensions: "+path);
+    throw std::runtime_error("Incorrect dimensions '"+path+"'");
 
   // allocate output
   cppmat::matrix<T> data(shape[0], shape[1]);
@@ -1567,7 +1567,7 @@ inline cppmat::vector<T> File::read_cppmat_vector(std::string path, const H5::Pr
   // check precision
   #ifndef HDF5PP_NDEBUG_PRECISION
     if ( ! this->correct_presision<T>(dataset) )
-      throw std::runtime_error("Incorrect precision: "+path);
+      throw std::runtime_error("Incorrect precision '"+path+"'");
   #endif
 
   // get shape
@@ -1575,7 +1575,7 @@ inline cppmat::vector<T> File::read_cppmat_vector(std::string path, const H5::Pr
 
   // check shape
   if ( shape.size() != 1 )
-    throw std::runtime_error("Incorrect dimensions: "+path);
+    throw std::runtime_error("Incorrect dimensions '"+path+"'");
 
   // allocate output
   cppmat::vector<T> data(shape[0]);
