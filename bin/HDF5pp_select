@@ -22,6 +22,7 @@ Options:
   -j, --json=ARG    JSON file with contains the path change.
       --sep=ARG     Set path separator. [default: ;]
   -f, --force       Force continuation, continue also if this operation discards fields.
+  -d, --dry-run     Dry run.
       --verbose     Verbose operations.
   -h, --help        Show help.
       --version     Show version.
@@ -248,15 +249,47 @@ for new, old in paths.items():
   src = getdatasets(source, old)
   dst = [re.sub(r'('+old+r')(.*)', new+r'\2', i) for i in src]
   for i,j in zip(src, dst): pairs += [(i,j)]
-# rename
+# - rename
 paths = pairs
+# - sort
+paths = sorted(paths, key=lambda path: path[0])
 
 # check discarded paths
 # - get difference
-diff = list(set(getdatasets(source)) - set([i for i,_ in paths]))
+diff = sorted(list(set(getdatasets(source)) - set([i for i,_ in paths])))
 # - prompt user
-if len(diff) > 0 and not args['--force']:
+if len(diff) > 0 and not args['--force'] and not args['--dry-run']:
   quit('The following paths are not copied:\n  '+'\n  '.join(diff)+'\nContinue [y/n]? ')
+
+# verbose
+# -------
+
+if args['--verbose'] or args['--dry-run']:
+
+  width = max([len(i) for i,_ in paths])
+  fmt   = '\033[92m  {0:%ds} -> {1:%ds}\033[0m' % (width, width)
+
+  print('The following fields are copied from "{0:s}" to "{1:s}"'.format(
+    args['<source>'], args['<destination>']
+  ))
+  print('')
+
+  for i,j in paths:
+    print(fmt.format(i,j))
+
+  print('')
+
+if args['--dry-run'] and len(diff) > 0:
+
+  print('\033[93mThe following fields are NOT copied from "{0:s}"\033[0m'.format(args['<source>']))
+  print('')
+  for i in diff:
+    print('\033[91m  {0:s}\033[0m'.format(i))
+  print('')
+
+if args['--dry-run']:
+
+  sys.exit(0)
 
 # copy
 # ----
