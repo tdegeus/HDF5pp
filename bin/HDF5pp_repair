@@ -70,6 +70,16 @@ Prompt user for confirmation. If the response is negative this function quits th
 
 # ==================================================================================================
 
+def check_file(fname):
+  r'''
+Check if a fail exists, quit otherwise.
+  '''
+
+  if not os.path.isfile(fname):
+    error('"{0.s}" does not exist'.format(fname))
+
+# ==================================================================================================
+
 def abspath(path):
   r'''
 Return absolute path.
@@ -86,6 +96,9 @@ Get a list of paths to each dataset in the HDF5-archive.
 
   # convert to absolute path
   root = abspath(root)
+
+  # edge-case: the root it a dataset
+  if isinstance(data[root], h5py.Dataset): return [root]
 
   # empty list of paths
   datasets = []
@@ -178,18 +191,40 @@ can be renamed by specifying a list of 'dest_datasets' (whose entries should cor
 # ==================================================================================================
 
 # parse command-line options
+# --------------------------
+
 args = docopt.docopt(__doc__,version='0.0.2')
+
+# check files
+# -----------
+
+# files that are required to exist
+check_file(args['<source>'])
 
 # check file existence of the destination
 if os.path.isfile(args['<destination>']) and not args['--force']:
-  quit('File "{0:s}" already exists, continue [y/n]?')
+  quit('File "{0:s}" already exists, continue [y/n]? '.format(args['<destination>']))
 
-# open HDF5-files
-source = h5py.File(args['<source>'     ], 'r')
-dest   = h5py.File(args['<destination>'], 'w')
+# get paths
+# ---------
 
-# copy datasets (of which reading is possible)
-copydatasets(source, dest, verify(source,getdatasets(source)) )
+# open HDF5-file
+source = h5py.File(args['<source>'], 'r')
+
+# get paths, that can be read
+paths = verify(source,getdatasets(source))
+
+# copy
+# ----
+
+# open HDF5-file
+dest = h5py.File(args['<destination>'], 'w')
+
+# copy datasets
+copydatasets(source, dest, paths)
+
+# finish
+# ------
 
 # close HDF5-files
 source.close()
