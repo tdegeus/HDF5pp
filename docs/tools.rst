@@ -16,7 +16,9 @@ Command-line tools
 HDF5pp_list
 -----------
 
-.. code-block::
+[:download:`HDF5pp_list <../bin/HDF5pp_list>`]
+
+.. code-block:: none
 
   HDF5pp_list
     List datasets (or groups of datasets) in a HDF5-file.
@@ -36,7 +38,9 @@ HDF5pp_list
 HDF5pp_repair
 -------------
 
-.. code-block::
+[:download:`HDF5pp_repair <../bin/HDF5pp_repair>`]
+
+.. code-block:: none
 
   HDF5pp_repair
     Extract readable data from a HDF5-file and copy it to a new HDF5-file.
@@ -56,7 +60,9 @@ HDF5pp_repair
 HDF5pp_merge
 ------------
 
-.. code-block::
+[:download:`HDF5pp_merge <../bin/HDF5pp_merge>`]
+
+.. code-block:: none
 
   HDF5pp_merge
     Merge an entire HDF5-file into another HDF5-file: copy all datasets from <source> to some root
@@ -99,7 +105,9 @@ HDF5pp_merge
 HDF5pp_select
 -------------
 
-.. code-block::
+[:download:`HDF5pp_select <../bin/HDF5pp_select>`]
+
+.. code-block:: none
 
   HDF5pp_select
     Select datasets (or groups of datasets) from a HDF5-file and store to a new HDF5-file.
