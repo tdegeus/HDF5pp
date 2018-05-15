@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 '''HDF5pp_merge
-  Merge an entire HDF5-file into another HDF5-file.
+  Merge an entire HDF5-file into another HDF5-file: copy all datasets from <source> to some root
+  in <destination>. The root is based on the path of <source>, as it is specified:
+
+  * without extension (default)
+  * only directory name (--dirname)
+  * as specified (--ext)
+  * apply some regex substitution (--find ... --replace ...)
 
 Usage:
   HDF5pp_merge [options] <source> <destination>
@@ -10,11 +16,13 @@ Arguments:
   <destination>       Destination HDF5-file (appended).
 
 Options:
-  -p, --path=ARG      Root under which to store the source. (default: relative directory of source)
-  -f, --find=ARG      Regex search to apply to the path.
-  -r, --replace=ARG   Regex replace to apply to the path.
-      --rm            Remove <source> after successful copy.
-  -d, --dry-run       Dry run, don't copy anything.
+      --ext           Include extension of <source> in root.
+      --dirname       Use only directory name of <source> in root.
+  -f, --find=ARG      Regex search  to apply to <source>.
+  -r, --replace=ARG   Regex replace to apply to <source>.
+  -p, --root=ARG      Manually set root.
+       --rm           Remove <source> after successful copy.
+  -d, --dry-run       Dry run.
       --verbose       Verbose operations.
   -h, --help          Show help.
       --version       Show version.
@@ -217,24 +225,26 @@ if os.path.abspath(args['<source>']) == os.path.abspath(args['<destination>']):
 # ---------
 
 # apply regex to full path
-if args['--find'] and args['--replace'] and not args['--path']:
+if args['--find'] and args['--replace'] and not args['--root']:
 
   root = abspath(re.sub(args['--find'], args['--replace'], args['<source>']))
 
 # get explicitly specified path
-elif not args['--find'] and not args['--replace'] and args['--path']:
+elif not args['--find'] and not args['--replace'] and args['--root']:
 
-  root = abspath(args['--path'])
+  root = abspath(args['--root'])
 
 # default: path to folder
-elif not args['--find'] and not args['--replace'] and not args['--path']:
+elif not args['--find'] and not args['--replace'] and not args['--root']:
 
-  root = abspath(os.path.split(args['<source>'])[0])
+  if       args['--dirname']: root = abspath(os.path.split   (args['<source>'])[0])
+  elif not args['--ext'    ]: root = abspath(os.path.splitext(args['<source>'])[0])
+  else                      : root = abspath(                 args['<source>'])[0]
 
 # catch illegal cases
 else:
 
-  error('Conflicting options "--find", "--replace", and "--path"')
+  error('Conflicting options "--find", "--replace", and "--root"')
 
 # dry run
 # -------

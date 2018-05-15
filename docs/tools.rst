@@ -13,15 +13,78 @@ Command-line tools
 
     pip3 install h5py doctopt
 
+HDF5pp_list
+-----------
+
+.. code-block::
+
+  HDF5pp_list
+    List datasets (or groups of datasets) in a HDF5-file.
+
+  Usage:
+    HDF5pp_list [options] [--fold ARG]... <source>
+
+  Arguments:
+    <source>    HDF5-file.
+
+  Options:
+    -f, --fold=ARG        Fold paths.
+    -d, --max-depth=ARG   Maximum depth to display.
+    -h, --help            Show help.
+        --version         Show version.
+
 HDF5pp_repair
 -------------
 
-Copy as much as possible data from a corrupted HDF5 file.
+.. code-block::
+
+  HDF5pp_repair
+    Extract readable data from a HDF5-file and copy it to a new HDF5-file.
+
+  Usage:
+    HDF5pp_repair [options] <source> <destination>
+
+  Arguments:
+    <source>        Source HDF5-file, possibly containing corrupted data.
+    <destination>   Destination HDF5-file.
+
+  Options:
+    -f, --force     Force continuation, overwrite existing files.
+    -h, --help      Show help.
+        --version   Show version.
 
 HDF5pp_merge
 ------------
 
-Merge a HDF5-file into another HDF5-file.
+.. code-block::
+
+  HDF5pp_merge
+    Merge an entire HDF5-file into another HDF5-file: copy all datasets from <source> to some root
+    in <destination>. The root is based on the path of <source>, as it is specified:
+
+    * without extension (default)
+    * only directory name (--dirname)
+    * as specified (--ext)
+    * apply some regex substitution (--find ... --replace ...)
+
+  Usage:
+    HDF5pp_merge [options] <source> <destination>
+
+  Arguments:
+    <source>            Source HDF5-file.
+    <destination>       Destination HDF5-file (appended).
+
+  Options:
+        --ext           Include extension of <source> in root.
+        --dirname       Use only directory name of <source> in root.
+    -f, --find=ARG      Regex search  to apply to <source>.
+    -r, --replace=ARG   Regex replace to apply to <source>.
+    -p, --root=ARG      Manually set root.
+         --rm           Remove <source> after successful copy.
+    -d, --dry-run       Dry run.
+        --verbose       Verbose operations.
+    -h, --help          Show help.
+        --version       Show version.
 
 .. note::
 
@@ -31,4 +94,36 @@ Merge a HDF5-file into another HDF5-file.
 
     find . -iname '*.hdf5' -exec HDF5pp_merge {} output.hdf5 \;
 
-  In this case ``HDF5pp_merge`` is called from each HDF5-file that is found. Note that if ``output.hdf5`` already existed, it is skipped by ``HDF5pp_merge``.
+  In this case ``HDF5pp_merge`` is called for each HDF5-file that is found. Note that if ``output.hdf5`` already existed, it is skipped by ``HDF5pp_merge``.
+
+HDF5pp_select
+-------------
+
+.. code-block::
+
+  HDF5pp_select
+    Select datasets (or groups of datasets) from a HDF5-file and store to a new HDF5-file.
+
+  JSON:
+    The input can be a JSON file that looks like:
+
+      {
+        "/new/path" : "/old/path",
+        ...
+      }
+
+  Usage:
+    HDF5pp_select [options] [--path ARG]... <source> <destination>
+
+  Arguments:
+    <source>          Source HDF5-file.
+    <destination>     Destination HDF5-file (appended).
+
+  Options:
+    -p, --path=ARG    Pair of paths: "/destination/path;/source/path".
+    -j, --json=ARG    JSON file with contains the path change.
+        --sep=ARG     Set path separator. [default: ;]
+    -f, --force       Force continuation, continue also if this operation discards fields.
+        --verbose     Verbose operations.
+    -h, --help        Show help.
+        --version     Show version.
