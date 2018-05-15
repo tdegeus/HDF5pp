@@ -19,8 +19,9 @@ Arguments:
 
 Options:
   -p, --path=ARG    Pair of paths: "/destination/path;/source/path".
-  -j, --json=ARG    JSON file with contains the path change.
       --sep=ARG     Set path separator. [default: ;]
+  -j, --json=ARG    JSON file with contains the path change.
+  -i, --ignore      Ignore paths that are not present in <source>.
   -f, --force       Force continuation, continue also if this operation discards fields.
   -d, --dry-run     Dry run.
       --verbose     Verbose operations.
@@ -237,9 +238,16 @@ for path in args['--path']:
 source = h5py.File(args['<source>'], 'r')
 
 # check that all source paths exist
+# - paths to delete
+rm = []
+# - check
 for new, old in paths.items():
   if old not in source:
-    error('"{0:s}" not found in "{1:s}"'.format(old, args['<source>']))
+    if args['--ignore']: rm += [new]
+    else               : error('"{0:s}" not found in "{1:s}"'.format(old, args['<source>']))
+# - remove paths
+for new in rm:
+  del paths[new]
 
 # expand datasets
 # - allocate
