@@ -199,7 +199,7 @@ can be renamed by specifying a list of 'dest_datasets' (whose entries should cor
     group = os.path.split(dest_path)[0]
 
     # - copy data
-    source.copy(source_path, dest[group])
+    source.copy(source_path, dest[group], os.path.split(dest_path)[1])
 
 # ==================================================================================================
 
