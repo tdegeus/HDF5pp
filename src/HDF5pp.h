@@ -379,6 +379,10 @@ inline void File::unlink(std::string path)
 
 inline size_t File::size(std::string path)
 {
+  // check existence
+  if ( ! m_file.exists(path.c_str()) ) throw std::runtime_error("Path '"+path+"' does not exist");
+
+  // return size
   return static_cast<size_t>(m_file.openDataSet(path.c_str()).getSpace().getSelectNpoints());
 }
 
@@ -386,6 +390,9 @@ inline size_t File::size(std::string path)
 
 inline std::vector<size_t> File::shape(std::string path)
 {
+  // check existence
+  if ( ! m_file.exists(path.c_str()) ) throw std::runtime_error("Path '"+path+"' does not exist");
+
   // open data-space
   H5::DataSpace dataspace = m_file.openDataSet(path.c_str()).getSpace();
 
@@ -408,6 +415,9 @@ inline std::vector<size_t> File::shape(std::string path)
 
 inline size_t File::shape(std::string path, size_t i)
 {
+  // check existence
+  if ( ! m_file.exists(path.c_str()) ) throw std::runtime_error("Path '"+path+"' does not exist");
+
   // open dataset
   H5::DataSet   dataset   = m_file.openDataSet(path.c_str());
   H5::DataSpace dataspace = dataset.getSpace();
@@ -507,6 +517,9 @@ inline void File::write(std::string path, std::string input)
 template<>
 inline std::string File::read<std::string>(std::string path)
 {
+  // check existence
+  if ( ! m_file.exists(path.c_str()) ) throw std::runtime_error("Path '"+path+"' does not exist");
+
   // open dataset, get data-type
   H5::DataSet dataset = m_file.openDataSet(path.c_str());
 
@@ -636,6 +649,9 @@ inline void File::write(std::string path, double input)
 template<class T>
 inline T File::read_scalar(std::string path, const H5::PredType& HT)
 {
+  // check existence
+  if ( ! m_file.exists(path.c_str()) ) throw std::runtime_error("Path '"+path+"' does not exist");
+
   // open dataset
   H5::DataSet dataset = m_file.openDataSet(path.c_str());
 
@@ -843,6 +859,9 @@ inline void File::write(
 template<class T>
 inline T File::read(std::string path, const H5::PredType& HT, size_t index)
 {
+  // check existence
+  if ( ! m_file.exists(path.c_str()) ) throw std::runtime_error("Path '"+path+"' does not exist");
+
   // open dataset
   H5::DataSet   dataset   = m_file.openDataSet(path.c_str());
   H5::DataSpace dataspace = dataset.getSpace();
@@ -1024,6 +1043,9 @@ inline void File::write(
 template<class T>
 inline std::vector<T> File::read_vector(std::string path, const H5::PredType& HT)
 {
+  // check existence
+  if ( ! m_file.exists(path.c_str()) ) throw std::runtime_error("Path '"+path+"' does not exist");
+
   // open dataset
   H5::DataSet dataset = m_file.openDataSet(path.c_str());
 
@@ -1194,6 +1216,9 @@ template<class T>
 inline Eigen::Matrix<T,Eigen::Dynamic,1,Eigen::ColMajor> File::read_eigen_column(std::string path,
   const H5::PredType& HT)
 {
+  // check existence
+  if ( ! m_file.exists(path.c_str()) ) throw std::runtime_error("Path '"+path+"' does not exist");
+
   // open dataset
   H5::DataSet dataset = m_file.openDataSet(path.c_str());
 
@@ -1263,6 +1288,9 @@ template<class T>
 inline Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor>
 File::read_eigen_matrix(std::string path, const H5::PredType& HT)
 {
+  // check existence
+  if ( ! m_file.exists(path.c_str()) ) throw std::runtime_error("Path '"+path+"' does not exist");
+
   // open dataset
   H5::DataSet dataset = m_file.openDataSet(path.c_str());
 
@@ -1426,6 +1454,9 @@ inline void File::write(std::string path, const cppmat::vector<double> &input)
 template<class T>
 inline cppmat::array<T> File::read_cppmat_matrix(std::string path, const H5::PredType& HT)
 {
+  // check existence
+  if ( ! m_file.exists(path.c_str()) ) throw std::runtime_error("Path '"+path+"' does not exist");
+
   // open dataset
   H5::DataSet dataset = m_file.openDataSet(path.c_str());
 
@@ -1490,6 +1521,9 @@ inline cppmat::array<double> File::read<cppmat::array<double>>(std::string path)
 template<class T>
 inline cppmat::matrix<T> File::read_cppmat_matrix2(std::string path, const H5::PredType& HT)
 {
+  // check existence
+  if ( ! m_file.exists(path.c_str()) ) throw std::runtime_error("Path '"+path+"' does not exist");
+
   // open dataset
   H5::DataSet dataset = m_file.openDataSet(path.c_str());
 
@@ -1561,6 +1595,9 @@ inline cppmat::matrix<double> File::read<cppmat::matrix<double>>(std::string pat
 template<class T>
 inline cppmat::vector<T> File::read_cppmat_vector(std::string path, const H5::PredType& HT)
 {
+  // check existence
+  if ( ! m_file.exists(path.c_str()) ) throw std::runtime_error("Path '"+path+"' does not exist");
+
   // open dataset
   H5::DataSet dataset = m_file.openDataSet(path.c_str());
 
