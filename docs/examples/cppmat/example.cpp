@@ -9,19 +9,20 @@ int main()
   H5p::File file = H5p::File("example.hdf5", "w");
 
   // some example data
-  cppmat::matrix<double> data({2,3,4,5});
-
-  for ( size_t i = 0 ; i < data.size() ; ++i )
-    data[i] = static_cast<double>(i);
+  cppmat::array<double> data = cppmat::array<double>::Arange({2,3,4,5});
 
   // write data
   file.write("/data", data);
 
   // read data
-  cppmat::matrix<double> read_data = file.read<cppmat::matrix<double>>("/data");
+  cppmat::array<double> read_data = file.read<cppmat::array<double>>("/data");
+
+   // B = read_data;
 
   // print read data
   std::cout << read_data << std::endl;
+
+  // std::cout << B << std::endl;
 
   return 0;
 }

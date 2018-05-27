@@ -276,6 +276,16 @@ Writing and reading matrices of arbitrary dimensions can be done as follows:
 
 [:download:`source: example.cpp <examples/cppmat/example.cpp>`, :download:`compile: CMakeLists.txt <examples/cppmat/CMakeLists.txt>`]
 
+.. note::
+
+  Several other cppmat-classes can be read directly using for example:
+
+  .. code-block:: cpp
+
+    cppmat::matrix<double> read_data = file.read<cppmat::array<double>>("/path/to/data");
+
+  Whether or not your class can be read depends cppmat (if there exists some automatic conversion, which is the case for most classes but not for all).
+
 Eigen - linear algebra library
 ------------------------------
 
