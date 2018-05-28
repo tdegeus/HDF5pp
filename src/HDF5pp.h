@@ -69,7 +69,7 @@ public:
   // constructor
   // -----------
 
-  File(){};
+  File() = default;
 
   File(const std::string &name, const std::string &mode="w", bool autoflush=true);
 
@@ -243,7 +243,7 @@ public:
   template<class T>
   void write(std::string path, const cppmat::array<T> &data, const H5::PredType& HT);
 
-  // (advanced) read data of arbitrary type to cppmat::matrix
+  // (advanced) read data of arbitrary type to cppmat::array
   template<class T>
   cppmat::array<T> read_cppmat_array(std::string path, const H5::PredType& HT);
 
