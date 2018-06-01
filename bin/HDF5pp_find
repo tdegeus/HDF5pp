@@ -99,7 +99,10 @@ isfile(args['<source>'])
 # ---------
 
 # open HDF5-file
-source = h5py.File(args['<source>'], 'r')
+try:
+  source = h5py.File(args['<source>'], 'r')
+except:
+  error('Error reading "{0:s}"'.format(args['<source>']))
 
 # get datasets
 paths = HDF5pp.getdatasets(source)
