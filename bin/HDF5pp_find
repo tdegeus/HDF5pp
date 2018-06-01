@@ -102,7 +102,13 @@ isfile(args['<source>'])
 try:
   source = h5py.File(args['<source>'], 'r')
 except:
-  error('Error reading "{0:s}"'.format(args['<source>']))
+  if args['--remove']:
+    if args['--dry-run']:
+      print('rm '+args['<source>'])
+    else:
+      os.remove(args['<source>'])
+  else:
+    error('Error reading "{0:s}"'.format(args['<source>']))
 
 # get datasets
 paths = HDF5pp.getdatasets(source)
