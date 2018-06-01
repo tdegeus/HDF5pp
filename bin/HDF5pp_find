@@ -104,9 +104,9 @@ try:
 except:
   if args['--remove']:
     if args['--dry-run']:
-      print('rm '+args['<source>'])
+      print('rm '+args['<source>']); sys.exit(1)
     else:
-      os.remove(args['<source>'])
+      os.remove(args['<source>']); sys.exit(1)
   else:
     error('Error reading "{0:s}"'.format(args['<source>']))
 
