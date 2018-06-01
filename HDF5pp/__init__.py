@@ -1,0 +1,115 @@
+
+import warnings
+warnings.filterwarnings("ignore")
+
+import os, re, h5py
+
+# ==================================================================================================
+
+def abspath(path):
+  r'''
+Return absolute path.
+  '''
+
+  return os.path.normpath(os.path.join('/', path))
+
+# ==================================================================================================
+
+def getdatasets(data, root="/"):
+  r'''
+Get a list of paths to each dataset in the HDF5-archive.
+  '''
+
+  # convert to absolute path
+  root = abspath(root)
+
+  # edge-case: the root it a dataset
+  if isinstance(data[root], h5py.Dataset): return [root]
+
+  # empty list of paths
+  datasets = []
+
+  # loop over all fields under the current root
+  for name in data[root]:
+
+    # - convert to path
+    path = os.path.join(root, name)
+
+    # - current path is a Dataset -> append list, otherwise append list with list of paths
+    if isinstance(data[path], h5py.Dataset): datasets += [path]
+    else                                   : datasets += getdatasets(data,path)
+
+  # return list of paths
+  return datasets
+
+# ==================================================================================================
+
+def verify(data, datasets):
+  r'''
+Try reading each dataset of a list of datasets. Return a list with only those datasets that can be
+successfully opened.
+  '''
+
+  # empty list of paths
+  out = []
+
+  # loop over list of paths
+  for path in datasets:
+
+    # - try reading, move to the next path if reading is unsuccessful
+    try   : data[path]
+    except: continue
+
+    # - add to output
+    out += [path]
+
+  # return list of paths that can be successfully read
+  return out
+
+# ==================================================================================================
+
+def exists(data, datasets):
+  r'''
+Return the first path that exists in the HDF5-archive.
+  '''
+
+  for path in datasets:
+    if path in data:
+      return path
+
+  return False
+
+# ==================================================================================================
+
+def copydatasets(source, dest, source_datasets, dest_datasets=None):
+  r'''
+Copy all datasets from one HDF5-archive 'source' to another HDF5-archive 'dest'. The datasets
+can be renamed by specifying a list of 'dest_datasets' (whose entries should correspond to the
+'source_datasets').
+  '''
+
+  # make sure that all paths are absolute paths
+  source_datasets = [abspath(path) for path in source_datasets]
+
+  # copy the source datasets
+  if not dest_datasets: dest_datasets = [path for path in source_datasets]
+
+  # get the group-names from 'source_datasets'
+  # - read and filter duplicates
+  groups = list(set([os.path.split(path)[0] for path in dest_datasets]))
+  # - remove '/'
+  groups = [group for group in groups if group != '/']
+  # - sort based on depth
+  groups = sorted(groups, key=lambda group: (group.count('/'), group))
+
+  # create groups
+  for group in groups: dest.create_group(group)
+
+  # copy datasets
+  for source_path, dest_path in zip(source_datasets, dest_datasets):
+
+    # - get group name
+    group = os.path.split(dest_path)[0]
+
+    # - copy data
+    source.copy(source_path, dest[group], os.path.split(dest_path)[1])

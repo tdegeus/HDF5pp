@@ -1,0 +1,131 @@
+#!/usr/bin/env python3
+'''HDF5pp_find
+  Function, loosely based on Linux' find, that searches datasets in a HDF5 file. It allows to
+  execute both file operations and basic dataset manipulations.
+
+Usage:
+  HDF5pp_find <source> [options]
+
+Arguments:
+  <source>    HDF5-file.
+
+Options:
+      --iname=ARG       Search for dataset, ignoring the case.
+      --find=ARG        Find. [default: (.*)]
+      --remove          Remove command.
+      --not             Execute command only if there are no matches.
+      --dry-run         Perform a dry-run.
+  -h, --help            Show help.
+      --version         Show version.
+
+(c - MIT) T.W.J. de Geus | tom@geus.me | www.geus.me | github.com/tdegeus/HDF5pp
+'''
+
+# ==================================================================================================
+
+# temporary fix: suppress warning from h5py
+import warnings
+warnings.filterwarnings("ignore")
+
+import numpy as np
+import sys, os, re, h5py, docopt, HDF5pp
+
+# ==================================================================================================
+
+def confirm(message='Proceed [y/n]?\n'):
+  r'''
+Prompt user for confirmation. The function loops until the user responds with
+
+* 'y' -> True
+* 'n' -> False
+  '''
+
+  while True:
+
+    # - prompt message, get user's response
+    user = input(message)
+
+    # - check response
+    if not user                     : print('Please enter y or n.'); continue
+    if user not in ['y','Y','n','N']: print('Please enter y or n.'); continue
+    if user     in ['y','Y'        ]: return True
+    if user     in ['n','N'        ]: return False
+
+# ==================================================================================================
+
+def error(message):
+  r'''
+Print error message and quit.
+  '''
+
+  print(message)
+
+  sys.exit(1)
+
+# ==================================================================================================
+
+def quit(message):
+  r'''
+Prompt user for confirmation. If the response is negative this function quits the program.
+  '''
+
+  if not confirm(message):
+    sys.exit(1)
+
+# ==================================================================================================
+
+def isfile(fname):
+  r'''
+Check if a fail exists, quit otherwise.
+  '''
+
+  if not os.path.isfile(fname):
+    error('"{0.s}" does not exist'.format(fname))
+
+# ==================================================================================================
+
+# parse command-line options
+# --------------------------
+
+args = docopt.docopt(__doc__,version='0.0.2')
+
+# check files
+# -----------
+
+# files that are required to exist
+isfile(args['<source>'])
+
+# get paths
+# ---------
+
+# open HDF5-file
+source = h5py.File(args['<source>'], 'r')
+
+# get datasets
+paths = HDF5pp.getdatasets(source)
+
+# close HDF-file
+source.close()
+
+# find
+# ----
+
+select = []
+
+for path in paths:
+
+  if args['--iname']:
+    if re.match(args['--iname'], os.path.split(path)[1], re.IGNORECASE):
+      select += [path]
+      continue
+
+# file modifications
+# ------------------
+
+if args['--remove'] and ( len(select) > 0 or ( len(select) == 0 and args['--not'] ) ):
+
+  if args['--dry-run']:
+    print('rm '+args['<source>'])
+  else:
+    os.remove(args['<source>'])
+

@@ -24,6 +24,7 @@ set(binaries
   "bin/HDF5pp_repair"
   "bin/HDF5pp_merge"
   "bin/HDF5pp_select"
+  "bin/HDF5pp_find"
 )
 
 # automatically parse the version number
@@ -39,8 +40,8 @@ set(HDF5PP_VERSION_NUMBER ${world_version}.${major_version}.${minor_version})
 # paths
 # -----
 
-set(HDF5PP_ROOT_DIR         "${CMAKE_INSTALL_PREFIX}")
-set(HDF5PP_INCLUDE_DIR      "${CMAKE_INSTALL_INCLUDEDIR}")
+set(HDF5PP_ROOT_DIR          "${CMAKE_INSTALL_PREFIX}")
+set(HDF5PP_INCLUDE_DIR       "${CMAKE_INSTALL_INCLUDEDIR}")
 set(INCLUDE_INSTALL_DIR      "${CMAKE_INSTALL_INCLUDEDIR}")
 set(CMAKEPACKAGE_INSTALL_DIR "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}")
 set(PKGCONFIG_INSTALL_DIR    "${CMAKE_INSTALL_DATADIR}/pkgconfig")
