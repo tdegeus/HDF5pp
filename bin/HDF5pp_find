@@ -122,7 +122,7 @@ for path in paths:
 # file modifications
 # ------------------
 
-if args['--remove'] and ( len(select) > 0 or ( len(select) == 0 and args['--not'] ) ):
+if args['--remove'] and ( ( len(select) > 0 and not args['--not'] ) or ( len(select) == 0 and args['--not'] ) ):
 
   if args['--dry-run']:
     print('rm '+args['<source>'])
