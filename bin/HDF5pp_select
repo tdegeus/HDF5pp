@@ -90,7 +90,7 @@ Check if a fail exists, quit otherwise.
   '''
 
   if not os.path.isfile(fname):
-    error('"{0.s}" does not exist'.format(fname))
+    error('"{0:s}" does not exist'.format(fname))
 
 # ==================================================================================================
 

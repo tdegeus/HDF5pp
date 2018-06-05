@@ -92,7 +92,7 @@ HDF5pp_merge
     -h, --help          Show help.
         --version       Show version.
 
-.. note::
+.. tip::
 
   To merge a bunch of files one could use:
 
@@ -135,3 +135,40 @@ HDF5pp_select
         --verbose     Verbose operations.
     -h, --help        Show help.
         --version     Show version.
+
+HDF5pp_find
+-------------
+
+[:download:`HDF5pp_find <../bin/HDF5pp_find>`]
+
+.. code-block:: none
+
+  HDF5pp_find
+    Function, loosely based on Linux' find, that searches datasets in a HDF5 file. It allows to
+    execute both file operations and basic dataset manipulations.
+
+  Usage:
+    HDF5pp_find <source> [options]
+
+  Arguments:
+    <source>    HDF5-file.
+
+  Options:
+        --iname=ARG       Search for dataset, ignoring the case.
+        --find=ARG        Find. [default: (.*)]
+        --remove          Remove command.
+        --not             Execute command only if there are no matches.
+        --dry-run         Perform a dry-run.
+        --verbose         Print file-path.
+    -h, --help            Show help.
+        --version         Show version.
+
+.. tip::
+
+  To remove all files that do not contain a dataset called "completed":
+
+  .. code-block:: bash
+
+    find . -iname '*.hdf5' -exec HDF5pp_find {} --not --iname "completed" --remove \;
+
+

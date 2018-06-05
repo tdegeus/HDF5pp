@@ -15,6 +15,7 @@ Options:
       --remove          Remove command.
       --not             Execute command only if there are no matches.
       --dry-run         Perform a dry-run.
+      --verbose         Print file-path.
   -h, --help            Show help.
       --version         Show version.
 
@@ -80,7 +81,7 @@ Check if a fail exists, quit otherwise.
   '''
 
   if not os.path.isfile(fname):
-    error('"{0.s}" does not exist'.format(fname))
+    error('"{0:s}" does not exist'.format(fname))
 
 # ==================================================================================================
 
@@ -98,43 +99,47 @@ isfile(args['<source>'])
 # get paths
 # ---------
 
-# open HDF5-file
+# print file
+if args['--verbose']: print(args['<source>'])
+
+# initialize list with datasets
+paths = []
+
+# read datasets
 try:
+
+  # - read file
   source = h5py.File(args['<source>'], 'r')
+  # - get datasets
+  paths = HDF5pp.getdatasets(source)
+  # - close file
+  source.close()
+
 except:
-  if args['--remove']:
-    if args['--dry-run']:
-      print('rm '+args['<source>']); sys.exit(1)
-    else:
-      os.remove(args['<source>']); sys.exit(1)
-  else:
-    error('Error reading "{0:s}"'.format(args['<source>']))
 
-# get datasets
-paths = HDF5pp.getdatasets(source)
+  print('Error reading "{0:s}"'.format(args['<source>']))
 
-# close HDF-file
-source.close()
+# filter datasets
+# ---------------
 
-# find
-# ----
-
+# allocate empty list
 select = []
 
+# loop over all datasets
 for path in paths:
 
+  # - compare name
   if args['--iname']:
     if re.match(args['--iname'], os.path.split(path)[1], re.IGNORECASE):
       select += [path]
       continue
 
-# file modifications
-# ------------------
+# remove file
+# -----------
 
+# remove file only if the path was not found
 if args['--remove'] and ( ( len(select) > 0 and not args['--not'] ) or ( len(select) == 0 and args['--not'] ) ):
 
-  if args['--dry-run']:
-    print('rm '+args['<source>'])
-  else:
-    os.remove(args['<source>'])
+  if args['--dry-run']: print('rm '+args['<source>']); sys.exit(1)
+  else                : os.remove(  args['<source>']); sys.exit(1)
 
