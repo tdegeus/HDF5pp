@@ -152,7 +152,7 @@ if args['--dry-run']:
     dest   = h5py.File(args['<destination>'], 'r')
 
     # - get datasets to copy
-    source_datasets = [HDF5pp.abspath(path) for path in HDF5pp.verify(source,list(HDF5pp.getdatasets(source)))]
+    source_datasets = [HDF5pp.abspath(path) for path in HDF5pp.verify(source,HDF5pp.getdatasets(source))]
 
     # - convert to datasets to store
     dest_datasets = [os.path.join(root,path[1:]) for path in source_datasets]
@@ -183,7 +183,7 @@ source = h5py.File(args['<source>'     ], 'r')
 dest   = h5py.File(args['<destination>'], 'a')
 
 # get datasets to copy
-source_datasets = [HDF5pp.abspath(path) for path in HDF5pp.verify(source,list(HDF5pp.getdatasets(source)))]
+source_datasets = [HDF5pp.abspath(path) for path in HDF5pp.verify(source,HDF5pp.getdatasets(source))]
 
 # convert to datasets to store
 dest_datasets = [os.path.join(root,path[1:]) for path in source_datasets]
