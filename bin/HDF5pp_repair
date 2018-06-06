@@ -102,7 +102,7 @@ if os.path.isfile(args['<destination>']) and not args['--force']:
 source = h5py.File(args['<source>'], 'r')
 
 # get paths, that can be read
-paths = HDF5pp.verify(source, HDF5pp.getdatasets(source))
+paths = HDF5pp.verify(source, list(HDF5pp.getdatasets(source)))
 
 # copy
 # ----

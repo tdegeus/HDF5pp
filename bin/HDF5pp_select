@@ -144,7 +144,7 @@ for new in rm:
 pairs = []
 # - fill
 for new, old in paths.items():
-  src = HDF5pp.getdatasets(source, old)
+  src = list(HDF5pp.getdatasets(source, old))
   dst = [re.sub(r'('+old+r')(.*)', new+r'\2', i) for i in src]
   for i,j in zip(src, dst): pairs += [(i,j)]
 # - rename

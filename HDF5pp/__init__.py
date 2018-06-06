@@ -15,32 +15,40 @@ Return absolute path.
 
 # ==================================================================================================
 
-def getdatasets(data, root="/"):
+def getdatasets(data, root='/'):
   r'''
-Get a list of paths to each dataset in the HDF5-archive.
+Traverse all datasets across all groups in HDF5 file. Usage:
+
+*   for i in HDF5pp.getdatasets(data): ...
+*   set(HDF5pp.getdatasets(data))
+*   list(HDF5pp.getdatasets(data))
   '''
 
-  # convert to absolute path
-  root = abspath(root)
+  def iterator(g, prefix=''):
 
-  # edge-case: the root it a dataset
-  if isinstance(data[root], h5py.Dataset): return [root]
+    for key in g.keys():
 
-  # empty list of paths
-  datasets = []
+      item = g[key]
 
-  # loop over all fields under the current root
-  for name in data[root]:
+      path = '{}/{}'.format(prefix, key)
 
-    # - convert to path
-    path = os.path.join(root, name)
+      if isinstance(item, h5py.Dataset): # test for dataset
+        yield (path, item)
 
-    # - current path is a Dataset -> append list, otherwise append list with list of paths
-    if isinstance(data[path], h5py.Dataset): datasets += [path]
-    else                                   : datasets += getdatasets(data,path)
+      elif isinstance(item, h5py.Group): # test for group (go down)
+        yield from iterator(item, path)
 
-  # return list of paths
-  return datasets
+  if root == '/':
+    prefix = ''
+
+  else:
+    prefix = root
+    if isinstance(data[root], h5py.Dataset):
+      yield root
+      return
+
+  for (path, dset) in iterator(data[root], prefix):
+    yield path
 
 # ==================================================================================================
 
@@ -72,6 +80,8 @@ def exists(data, datasets):
   r'''
 Return the first path that exists in the HDF5-archive.
   '''
+
+  if type(datasets) == str: datasets = [datasets]
 
   for path in datasets:
     if path in data:
