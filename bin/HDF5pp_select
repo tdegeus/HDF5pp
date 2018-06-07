@@ -117,7 +117,7 @@ if os.path.isfile(args['<destination>']) and not args['--force']:
 if args['--json']: paths = json.loads(open(args['--json'],'r').read())
 else             : paths = {}
 
-# add paths
+# add paths from format: "/destination/path;/source/path"
 for path in args['--path']:
   paths[path.split(args['--sep'])[0]] = path.split(args['--sep'])[1]
 
@@ -144,8 +144,11 @@ for new in rm:
 pairs = []
 # - fill
 for new, old in paths.items():
+  # -- get all paths from "old" downwards
   src = list(HDF5pp.getdatasets(source, old))
+  # -- rename root
   dst = [re.sub(r'('+old+r')(.*)', new+r'\2', i) for i in src]
+  # -- add to pairs
   for i,j in zip(src, dst): pairs += [(i,j)]
 # - rename
 paths = pairs

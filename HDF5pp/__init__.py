@@ -1,4 +1,3 @@
-
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -15,14 +14,27 @@ Return absolute path.
 
 # ==================================================================================================
 
+def join(*args):
+  r'''
+Join path components.
+  '''
+
+  return os.path.join(*args)
+
+# ==================================================================================================
+
 def getdatasets(data, root='/'):
   r'''
 Traverse all datasets across all groups in HDF5 file. Usage:
 
-*   for i in HDF5pp.getdatasets(data): ...
-*   set(HDF5pp.getdatasets(data))
-*   list(HDF5pp.getdatasets(data))
+*   for path in HDF5pp.getdatasets(data): ...
+*   paths = set (HDF5pp.getdatasets(data))
+*   paths = list(HDF5pp.getdatasets(data))
+
+See: `this answer <https://stackoverflow.com/a/50720736/2646505>`_.
   '''
+
+  # ---------------------------------------------
 
   def iterator(g, prefix=''):
 
@@ -30,25 +42,24 @@ Traverse all datasets across all groups in HDF5 file. Usage:
 
       item = g[key]
 
-      path = '{}/{}'.format(prefix, key)
+      path = join(prefix, key)
 
-      if isinstance(item, h5py.Dataset): # test for dataset
+      if isinstance(item, h5py.Dataset):
         yield (path, item)
 
-      elif isinstance(item, h5py.Group): # test for group (go down)
+      elif isinstance(item, h5py.Group):
         yield from iterator(item, path)
 
-  if root == '/':
-    prefix = ''
+  # ---------------------------------------------
+
+  if isinstance(data[root], h5py.Dataset):
+
+    yield root
 
   else:
-    prefix = root
-    if isinstance(data[root], h5py.Dataset):
-      yield root
-      return
 
-  for (path, dset) in iterator(data[root], prefix):
-    yield path
+    for (path, dset) in iterator(data[root], root):
+      yield path
 
 # ==================================================================================================
 
