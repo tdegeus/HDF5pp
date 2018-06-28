@@ -14,12 +14,13 @@ Return absolute path.
 
 # ==================================================================================================
 
-def join(*args):
+def join(*args, root=False):
   r'''
 Join path components.
   '''
 
-  return os.path.join(*args)
+  if root: return os.path.join('/', *args)
+  else   : return os.path.join(     *args)
 
 # ==================================================================================================
 
