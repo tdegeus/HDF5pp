@@ -25,6 +25,7 @@ set(binaries
   "bin/HDF5pp_merge"
   "bin/HDF5pp_select"
   "bin/HDF5pp_find"
+  "bin/HDF5pp_check"
 )
 
 # automatically parse the version number

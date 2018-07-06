@@ -39,7 +39,7 @@
 
 #define HDF5PP_WORLD_VERSION 0
 #define HDF5PP_MAJOR_VERSION 0
-#define HDF5PP_MINOR_VERSION 10
+#define HDF5PP_MINOR_VERSION 12
 
 #define HDF5PP_VERSION_AT_LEAST(x,y,z) \
   (HDF5PP_WORLD_VERSION>x || (HDF5PP_WORLD_VERSION>=x && \
@@ -81,7 +81,7 @@ public:
   void flush();
 
   // check if a path exists (is a group or a dataset)
-  bool exists(std::string path);
+  bool exists(const std::string &path) const;
 
   // create a group
   // NB there is usually no need to call this function, all 'write' functions call it
@@ -299,7 +299,7 @@ inline void File::flush()
 
 // -------------------------- check if path exists (is group or dataset) --------------------------
 
-inline bool File::exists(std::string path)
+inline bool File::exists(const std::string &path) const
 {
   // find first "/"
   size_t idx = path.find("/");

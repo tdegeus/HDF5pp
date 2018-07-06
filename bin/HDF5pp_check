@@ -1,36 +1,17 @@
 #!/usr/bin/env python3
-'''HDF5pp_find
-  Function, loosely based on Linux' find, that searches datasets in a HDF5 file. Based on the
-  search result this function will print the filename for a positive match (or print nothing for a
-  negative match).
-
-Examples:
-
-  * Perform an action if the file ("data.hdf5") does not contain the field "/completed"
-
-      if [ `HDF5pp_find data.hdf5 --not --iname "/completed"` ]; then ... fi
-
-    If the action is to remove the file, the shorthand
-
-      HDF5pp_find data.hdf5 --not --iname "/completed" --remove
-
-    is also available.
+'''HDF5pp_check
+  Try reading datasets. In case of reading failure the path is printed.
 
 Usage:
-  HDF5pp_find <source> [options]
+  HDF5pp_check <source> [options]
 
 Arguments:
-  <source>    HDF5-file.
+  <source>        HDF5-file.
 
 Options:
-      --iname=ARG       Search for dataset, ignoring the case.
-      --find=ARG        Find. [default: (.*)]
-      --remove          Remove file for a positive match.
-      --not             Execute command only if there are no matches.
-      --dry-run         Perform a dry-run.
-      --verbose         Print file-path.
-  -h, --help            Show help.
-      --version         Show version.
+  -b, --basic     Only try getting a list of datasets, skip trying to read them.
+  -h, --help      Show help.
+      --version   Show version.
 
 (c - MIT) T.W.J. de Geus | tom@geus.me | www.geus.me | github.com/tdegeus/HDF5pp
 '''
@@ -112,12 +93,6 @@ isfile(args['<source>'])
 # get paths
 # ---------
 
-# print file
-if args['--verbose']: print(args['<source>'])
-
-# initialize list with datasets
-paths = []
-
 # read datasets
 try:
 
@@ -125,40 +100,11 @@ try:
   source = h5py.File(args['<source>'], 'r')
   # - get datasets
   paths = list(HDF5pp.getdatasets(source))
+  # - verify
+  if not args['--basic']: HDF5pp.verify(source, paths, error=True)
   # - close file
   source.close()
 
 except:
 
-  print('Error reading "{0:s}"'.format(args['<source>']))
-
-# filter datasets
-# ---------------
-
-# allocate empty list
-match = False
-
-# loop over all datasets
-for path in paths:
-
-  # - compare name
-  if args['--iname']:
-    if re.match(args['--iname'], os.path.split(path)[1], re.IGNORECASE):
-      match = True
-      break
-
-# remove file
-# -----------
-
-# remove file only if the path was not found
-if args['--remove'] and ( ( match and not args['--not'] ) or ( not match and args['--not'] ) ):
-
-  if args['--dry-run']: print('rm '+args['<source>']); sys.exit(0)
-  else                : os.remove(  args['<source>']); sys.exit(0)
-
-# print
-# -----
-
-if ( match and not args['--not'] ) or ( not match and args['--not'] ):
   print(args['<source>'])
-

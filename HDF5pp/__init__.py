@@ -64,7 +64,7 @@ See: `this answer <https://stackoverflow.com/a/50720736/2646505>`_.
 
 # ==================================================================================================
 
-def verify(data, datasets):
+def verify(data, datasets, error=False):
   r'''
 Try reading each dataset of a list of datasets. Return a list with only those datasets that can be
 successfully opened.
@@ -77,8 +77,11 @@ successfully opened.
   for path in datasets:
 
     # - try reading, move to the next path if reading is unsuccessful
-    try   : data[path]
-    except: continue
+    try:
+      tmp = data[path][...]
+    except:
+      if error: raise IOError('Error reading "{path:s}"'.format(path=path))
+      else    : continue
 
     # - add to output
     out += [path]

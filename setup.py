@@ -1,10 +1,17 @@
 
+import re
+
 from setuptools                 import setup
 from setuptools.command.install import install
 
 # --------------------------------------------------------------------------------------------------
 
-__version__ = '0.0.1'
+header = open('src/HDF5pp.h','r').read()
+world  = re.split(r'(.*)(\#define HDF5PP_WORLD_VERSION\ )([0-9]+)(.*)',header)[3]
+major  = re.split(r'(.*)(\#define HDF5PP_MAJOR_VERSION\ )([0-9]+)(.*)',header)[3]
+minor  = re.split(r'(.*)(\#define HDF5PP_MINOR_VERSION\ )([0-9]+)(.*)',header)[3]
+
+__version__ = '.'.join([world,major,minor])
 
 # --------------------------------------------------------------------------------------------------
 

@@ -156,11 +156,14 @@ paths = pairs
 paths = sorted(paths, key=lambda path: path[0])
 
 # check discarded paths
-# - get difference
-diff = sorted(list(set(HDF5pp.getdatasets(source)) - set([i for i,_ in paths])))
-# - prompt user
-if len(diff) > 0 and not args['--force'] and not args['--dry-run']:
-  quit('The following paths are not copied:\n  '+'\n  '.join(diff)+'\nContinue [y/n]? ')
+if not args['--force']:
+  # - get difference
+  diff = sorted(list(set(HDF5pp.getdatasets(source)) - set([i for i,_ in paths])))
+  # - prompt user
+  if len(diff) > 0 and not args['--force'] and not args['--dry-run']:
+    quit('The following paths are not copied:\n  '+'\n  '.join(diff)+'\nContinue [y/n]? ')
+else:
+  diff = []
 
 # verbose
 # -------
