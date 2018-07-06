@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 '''HDF5pp_check
-  Try reading datasets. In case of reading failure the path is printed.
+  Try reading datasets. In case of reading failure the path is printed (otherwise nothing is
+  printed).
 
 Usage:
   HDF5pp_check <source> [options]

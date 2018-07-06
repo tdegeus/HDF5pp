@@ -13,6 +13,28 @@ Command-line tools
 
     pip3 install h5py doctopt
 
+HDF5pp_check
+------------
+
+[:download:`HDF5pp_check <../bin/HDF5pp_check>`]
+
+.. code-block:: none
+
+  HDF5pp_check
+    Try reading datasets. In case of reading failure the path is printed (otherwise nothing is
+    printed).
+
+  Usage:
+    HDF5pp_check <source> [options]
+
+  Arguments:
+    <source>        HDF5-file.
+
+  Options:
+    -b, --basic     Only try getting a list of datasets, skip trying to read them.
+    -h, --help      Show help.
+        --version   Show version.
+
 HDF5pp_list
 -----------
 
