@@ -193,4 +193,14 @@ HDF5pp_find
 
     find . -iname '*.hdf5' -exec HDF5pp_find {} --not --iname "completed" --remove \;
 
+.. tip::
+
+  To rename the directory that contains a HDF5-file, if that file contains a dataset called "completed":
+
+  .. code-block:: bash
+
+    mv_regex --dirname "(id\=[0-9]{3})([A-Z])" "\1C" `HDF5pp_find --iname "completed" id=000Q/data.hdf5`
+
+  (takes directories `id=000Q`, `id=001Q`, ... and renames them to `id=000C`, `id=001C`, ...).
+
 
