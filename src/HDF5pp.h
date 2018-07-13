@@ -38,8 +38,8 @@
 // -------------------------------------- version information --------------------------------------
 
 #define HDF5PP_WORLD_VERSION 0
-#define HDF5PP_MAJOR_VERSION 0
-#define HDF5PP_MINOR_VERSION 12
+#define HDF5PP_MAJOR_VERSION 1
+#define HDF5PP_MINOR_VERSION 0
 
 #define HDF5PP_VERSION_AT_LEAST(x,y,z) \
   (HDF5PP_WORLD_VERSION>x || (HDF5PP_WORLD_VERSION>=x && \
@@ -180,6 +180,35 @@ public:
   void write(std::string path, const std::vector<T> &data, const H5::PredType& HT,
     const std::vector<size_t> &shape);
 
+  // overwrite to file
+  // -----------------
+
+  // overwrite scalar to scalar dataset (non-extendable)
+  void overwrite(std::string path, int    data);
+  void overwrite(std::string path, size_t data);
+  void overwrite(std::string path, float  data);
+  void overwrite(std::string path, double data);
+
+  // overwrite "std::vector" to a dataset of arbitrary shape
+  void overwrite(std::string path, const std::vector<int>    &data,const std::vector<size_t> &shape={});
+  void overwrite(std::string path, const std::vector<size_t> &data,const std::vector<size_t> &shape={});
+  void overwrite(std::string path, const std::vector<float>  &data,const std::vector<size_t> &shape={});
+  void overwrite(std::string path, const std::vector<double> &data,const std::vector<size_t> &shape={});
+
+  // (advanced) overwrite scalar of arbitrary type to a dataset containing exactly one entry
+  template<class T>
+  void overwrite(std::string path, T data, const H5::PredType& HT);
+
+  // (advanced) overwrite array or any type and of arbitrary shape or rank
+  template<class T>
+  void overwrite(std::string path, const T *input, const H5::PredType& HT,
+    const std::vector<size_t> &shape);
+
+  // (advanced) overwrite std::vector of arbitrary type to a dataset of arbitrary rank
+  template<class T>
+  void overwrite(std::string path, const std::vector<T> &data, const H5::PredType& HT,
+    const std::vector<size_t> &shape);
+
   // plugin: Eigen
   // -------------
 
@@ -216,6 +245,37 @@ public:
     const Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &data,
     const H5::PredType& HT);
 
+  // overwrite column to dataset of rank 1
+  void overwrite(std::string path, const Eigen::Matrix<int   ,Eigen::Dynamic,1,Eigen::ColMajor> &data);
+  void overwrite(std::string path, const Eigen::Matrix<size_t,Eigen::Dynamic,1,Eigen::ColMajor> &data);
+  void overwrite(std::string path, const Eigen::Matrix<float ,Eigen::Dynamic,1,Eigen::ColMajor> &data);
+  void overwrite(std::string path, const Eigen::Matrix<double,Eigen::Dynamic,1,Eigen::ColMajor> &data);
+
+  // overwrite matrix to dataset of rank 2
+  void overwrite(std::string path,
+    const Eigen::Matrix<int  ,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &data);
+
+  void overwrite(std::string path,
+    const Eigen::Matrix<size_t,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &data);
+
+  void overwrite(std::string path,
+    const Eigen::Matrix<float ,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &data);
+
+  void overwrite(std::string path,
+    const Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &data);
+
+  // (advanced) overwrite column of arbitrary type to dataset of rank 1
+  template<class T>
+  void overwrite(std::string path,
+    const Eigen::Matrix<T,Eigen::Dynamic,1,Eigen::ColMajor> &data,
+    const H5::PredType& HT);
+
+  // (advanced) overwrite matrix of arbitrary type to dataset of rank 2
+  template<class T>
+  void overwrite(std::string path,
+    const Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &data,
+    const H5::PredType& HT);
+
   // (advanced) read data of arbitrary type to Eigen column
   template<class T>
   Eigen::Matrix<T,Eigen::Dynamic,1,Eigen::ColMajor> read_eigen_column(std::string path,
@@ -243,6 +303,16 @@ public:
   template<class T>
   void write(std::string path, const cppmat::array<T> &data, const H5::PredType& HT);
 
+  // overwrite nd-array to dataset of matching rank
+  void overwrite(std::string path, const cppmat::array<int   > &data);
+  void overwrite(std::string path, const cppmat::array<size_t> &data);
+  void overwrite(std::string path, const cppmat::array<float > &data);
+  void overwrite(std::string path, const cppmat::array<double> &data);
+
+  // (advanced) overwrite nd-array of arbitrary type to dataset of matching rank
+  template<class T>
+  void overwrite(std::string path, const cppmat::array<T> &data, const H5::PredType& HT);
+
   // (advanced) read data of arbitrary type to cppmat::array
   template<class T>
   cppmat::array<T> read_cppmat_array(std::string path, const H5::PredType& HT);
@@ -266,7 +336,7 @@ inline File::File(const std::string &name, const std::string &mode_, bool autofl
      // - find file
     std::ifstream infile(m_fname);
     // - throw error if file does not exist
-    if ( ! infile.good() ) std::runtime_error("HDF5pp: file '"+name+"' does not exist");
+    if ( ! infile.good() ) std::runtime_error("HDF5pp: file does not exist ('"+name+"')");
   }
 
   // check if file exists, otherwise set write mode to "w"
@@ -361,8 +431,9 @@ inline void File::unlink(std::string path)
 
 inline size_t File::size(std::string path)
 {
-  // check existence
-  if ( ! m_file.exists(path.c_str()) ) throw std::runtime_error("Path '"+path+"' does not exist");
+  // check existence of path
+  if ( ! exists(path) )
+    throw std::runtime_error("HDF5pp::size: dataset not found ('"+path+"')");
 
   // return size
   return static_cast<size_t>(m_file.openDataSet(path.c_str()).getSpace().getSelectNpoints());
@@ -372,8 +443,9 @@ inline size_t File::size(std::string path)
 
 inline std::vector<size_t> File::shape(std::string path)
 {
-  // check existence
-  if ( ! m_file.exists(path.c_str()) ) throw std::runtime_error("Path '"+path+"' does not exist");
+  // check existence of path
+  if ( ! exists(path) )
+    throw std::runtime_error("HDF5pp::shape: dataset not found ('"+path+"')");
 
   // open data-space
   H5::DataSpace dataspace = m_file.openDataSet(path.c_str()).getSpace();
@@ -397,8 +469,9 @@ inline std::vector<size_t> File::shape(std::string path)
 
 inline size_t File::shape(std::string path, size_t i)
 {
-  // check existence
-  if ( ! m_file.exists(path.c_str()) ) throw std::runtime_error("Path '"+path+"' does not exist");
+  // check existence of path
+  if ( ! exists(path) )
+    throw std::runtime_error("HDF5pp::shape: dataset not found ('"+path+"')");
 
   // open dataset
   H5::DataSet   dataset   = m_file.openDataSet(path.c_str());
@@ -409,7 +482,7 @@ inline size_t File::shape(std::string path, size_t i)
   int rank = dataspace.getSimpleExtentNdims();
   // - check rank
   if ( rank < static_cast<int>(i) )
-    throw std::runtime_error("Cannot read '"+path+"', rank of data lower that requested");
+    throw std::runtime_error("HDF5pp::shape: rank too low ('"+path+"')");
   // - allocate as HDF5-type
   std::vector<hsize_t> dimsf(rank);
   // - read
@@ -477,6 +550,10 @@ inline std::vector<size_t> File::shape(const H5::DataSpace &dataspace)
 
 inline void File::write(std::string path, std::string input)
 {
+  // check existence of path
+  if ( exists(path) )
+    throw std::runtime_error("HDF5pp::write: path already exists ('"+path+"')");
+
   // create group(s) if needed
   createGroup(path);
 
@@ -499,8 +576,9 @@ inline void File::write(std::string path, std::string input)
 template<>
 inline std::string File::read<std::string>(std::string path)
 {
-  // check existence
-  if ( ! m_file.exists(path.c_str()) ) throw std::runtime_error("Path '"+path+"' does not exist");
+  // check existence of path
+  if ( ! exists(path) )
+    throw std::runtime_error("HDF5pp::read: dataset not found ('"+path+"')");
 
   // open dataset, get data-type
   H5::DataSet dataset = m_file.openDataSet(path.c_str());
@@ -579,6 +657,10 @@ inline bool File::correct_presision<double>(const H5::DataSet &dataset)
 template<class T>
 inline void File::write(std::string path, T input, const H5::PredType& HT)
 {
+  // check existence of path
+  if ( exists(path) )
+    throw std::runtime_error("HDF5pp::write: path already exists ('"+path+"')");
+
   // create group(s) if needed
   createGroup(path);
 
@@ -624,6 +706,64 @@ inline void File::write(std::string path, double input)
   return write<double>(path,input,H5::PredType::NATIVE_DOUBLE);
 }
 
+// ============================== OVERWRITE SCALAR TO SCALAR DATASET ===============================
+
+// ------------------------------------------- template --------------------------------------------
+
+template<class T>
+inline void File::overwrite(std::string path, T input, const H5::PredType& HT)
+{
+  // new dataset: write using normal function
+  if ( ! exists(path) ) return write<T>(path,input,HT);
+
+  // check precision
+  #ifndef HDF5PP_NDEBUG_PRECISION
+    if ( ! this->correct_presision<T>(m_file.openDataSet(path.c_str())) )
+      throw std::runtime_error("HDF5pp::overwrite: precision inconsistent ('"+path+"')");
+  #endif
+
+  // check size
+  if ( size(path) != 1 )
+    throw std::runtime_error("HDF5pp::overwrite: dataset has a rank different than 1 ('"+path+"')");
+
+  // open dataset
+  H5::DataSet *dataset = new H5::DataSet(m_file.openDataSet(path.c_str()));
+
+  // store data
+  dataset->write(&input, HT);
+
+  // flush the file if so requested
+  if ( m_autoflush ) flush();
+}
+
+// ---------------------------------------------- int ----------------------------------------------
+
+inline void File::overwrite(std::string path, int input)
+{
+  return overwrite<int>(path,input,H5::PredType::NATIVE_INT);
+}
+
+// -------------------------------------------- size_t ---------------------------------------------
+
+inline void File::overwrite(std::string path, size_t input)
+{
+  return overwrite<size_t>(path,input,H5::PredType::NATIVE_HSIZE);
+}
+
+// --------------------------------------------- float ---------------------------------------------
+
+inline void File::overwrite(std::string path, float input)
+{
+  return overwrite<float>(path,input,H5::PredType::NATIVE_FLOAT);
+}
+
+// -------------------------------------------- double ---------------------------------------------
+
+inline void File::overwrite(std::string path, double input)
+{
+  return overwrite<double>(path,input,H5::PredType::NATIVE_DOUBLE);
+}
+
 // ======================== READ SCALAR FROM DATASET (SCALAR, OR OF SIZE 1) ========================
 
 // ------------------------------------------- template --------------------------------------------
@@ -631,8 +771,9 @@ inline void File::write(std::string path, double input)
 template<class T>
 inline T File::read_scalar(std::string path, const H5::PredType& HT)
 {
-  // check existence
-  if ( ! m_file.exists(path.c_str()) ) throw std::runtime_error("Path '"+path+"' does not exist");
+  // check existence of path
+  if ( ! exists(path) )
+    throw std::runtime_error("HDF5pp::read: dataset not found ('"+path+"')");
 
   // open dataset
   H5::DataSet dataset = m_file.openDataSet(path.c_str());
@@ -640,12 +781,12 @@ inline T File::read_scalar(std::string path, const H5::PredType& HT)
   // check precision
   #ifndef HDF5PP_NDEBUG_PRECISION
     if ( ! this->correct_presision<T>(dataset) )
-      throw std::runtime_error("Incorrect precision '"+path+"'");
+      throw std::runtime_error("HDF5pp::read: precision inconsistent ('"+path+"')");
   #endif
 
   // check size
   if ( this->size(dataset) > 1 )
-    throw std::runtime_error("Unable to read '"+path+"', data is array");
+    throw std::runtime_error("HDF5pp::read: dataset has a rank different than 1 ('"+path+"')");
 
   // allocate output
   T out;
@@ -757,7 +898,7 @@ inline void File::write(std::string path, T input, const H5::PredType& HT,
   // check precision
   #ifndef HDF5PP_NDEBUG_PRECISION
     if ( ! this->correct_presision<T>(dataset) )
-      throw std::runtime_error("Incorrect precision '"+path+"'");
+      throw std::runtime_error("HDF5pp::write: precision inconsistent ('"+path+"')");
   #endif
 
   // get the current rank and shape
@@ -770,7 +911,7 @@ inline void File::write(std::string path, T input, const H5::PredType& HT,
 
   // check rank (here only simple arrays are supported)
   if ( rank != 1 )
-    throw std::runtime_error("Can only extend rank 1 array with this function ('"+path+"')");
+    throw std::runtime_error("HDF5pp::write: can only extend rank 1 array ('"+path+"')");
 
   // extend shape, if needed
   shape[0] = std::max(static_cast<size_t>(shape[0]), index+1);
@@ -841,8 +982,9 @@ inline void File::write(
 template<class T>
 inline T File::read(std::string path, const H5::PredType& HT, size_t index)
 {
-  // check existence
-  if ( ! m_file.exists(path.c_str()) ) throw std::runtime_error("Path '"+path+"' does not exist");
+  // check existence of path
+  if ( ! exists(path) )
+    throw std::runtime_error("HDF5pp::read: dataset not found ('"+path+"')");
 
   // open dataset
   H5::DataSet   dataset   = m_file.openDataSet(path.c_str());
@@ -851,7 +993,7 @@ inline T File::read(std::string path, const H5::PredType& HT, size_t index)
   // check precision
   #ifndef HDF5PP_NDEBUG_PRECISION
     if ( ! this->correct_presision<T>(dataset) )
-      throw std::runtime_error("Incorrect precision '"+path+"'");
+      throw std::runtime_error("HDF5pp::read: incorrect precision ('"+path+"')");
   #endif
 
   // get the current rank and shape
@@ -864,11 +1006,11 @@ inline T File::read(std::string path, const H5::PredType& HT, size_t index)
 
   // check rank (here only simple arrays are supported)
   if ( rank != 1 )
-    throw std::runtime_error("Can only extend rank 1 array with this function ('"+path+"')");
+    throw std::runtime_error("HDF5pp::read: dataset not rank 1 ('"+path+"')");
 
   // check the shape
   if ( index >= shape[0] )
-    throw std::runtime_error("Index out-of-bounds ('"+path+"')");
+    throw std::runtime_error("HDF5pp::read: index out-of-bounds ('"+path+"')");
 
   // set offset
   std::vector<hsize_t> offset(rank, index);
@@ -931,6 +1073,10 @@ inline void File::write(
   std::string path, const T *input, const H5::PredType& HT, const std::vector<size_t> &shape
 )
 {
+  // check existence of path
+  if ( exists(path) )
+    throw std::runtime_error("HDF5pp::write: path already exists ('"+path+"')");
+
   // create group(s) if needed
   createGroup(path);
 
@@ -955,6 +1101,36 @@ inline void File::write(
 
   // store data
   dataset.write(input, HT);
+
+  // flush the file if so requested
+  if ( m_autoflush ) flush();
+}
+
+// ==================== TEMPLATE TO OVERWRITE ARRAY OF ARBITRARY SHAPE OR RANK =====================
+
+template<class T>
+inline void File::overwrite(
+  std::string path, const T *input, const H5::PredType& HT, const std::vector<size_t> &shape
+)
+{
+  // new dataset: write using normal function
+  if ( ! exists(path) ) return write<T>(path,input,HT,shape);
+
+  // check precision
+  #ifndef HDF5PP_NDEBUG_PRECISION
+    if ( ! this->correct_presision<T>(m_file.openDataSet(path.c_str())) )
+      throw std::runtime_error("HDF5pp::overwrite: precision inconsistent ('"+path+"')");
+  #endif
+
+  // check shape
+  if ( this->shape(path) != shape )
+    throw std::runtime_error("HDF5pp::overwrite: shape inconsistent ('"+path+"')");
+
+  // open dataset
+  H5::DataSet *dataset = new H5::DataSet(m_file.openDataSet(path.c_str()));
+
+  // store data
+  dataset->write(input, HT);
 
   // flush the file if so requested
   if ( m_autoflush ) flush();
@@ -1018,6 +1194,64 @@ inline void File::write(
   return write(path,input,H5::PredType::NATIVE_DOUBLE,shape);
 }
 
+// ===================== OVERWRITE STD::VECTOR TO DATASET (OF ARBITRARY RANK) ======================
+
+// ------------------------------------------- template --------------------------------------------
+
+template<class T>
+inline void File::overwrite(std::string path, const std::vector<T> &input, const H5::PredType& HT,
+  const std::vector<size_t> &shape)
+{
+  // copy input shape
+  std::vector<size_t> dims = shape;
+
+  // default shape == size of input
+  if ( dims.size() == 0 )
+  {
+    dims.resize(1);
+    dims[0] = input.size();
+  }
+
+  // write to file
+  overwrite(path,input.data(),HT,dims);
+}
+
+// ---------------------------------------------- int ----------------------------------------------
+
+inline void File::overwrite(
+  std::string path, const std::vector<int> &input, const std::vector<size_t> &shape
+)
+{
+  return overwrite(path,input,H5::PredType::NATIVE_INT,shape);
+}
+
+// -------------------------------------------- size_t ---------------------------------------------
+
+inline void File::overwrite(
+  std::string path, const std::vector<size_t> &input, const std::vector<size_t> &shape
+)
+{
+  return overwrite(path,input,H5::PredType::NATIVE_HSIZE,shape);
+}
+
+// --------------------------------------------- float ---------------------------------------------
+
+inline void File::overwrite(
+  std::string path, const std::vector<float> &input, const std::vector<size_t> &shape
+)
+{
+  return overwrite(path,input,H5::PredType::NATIVE_FLOAT,shape);
+}
+
+// -------------------------------------------- double ---------------------------------------------
+
+inline void File::overwrite(
+  std::string path, const std::vector<double> &input, const std::vector<size_t> &shape
+)
+{
+  return overwrite(path,input,H5::PredType::NATIVE_DOUBLE,shape);
+}
+
 // ======================= READ STD::VECTOR FROM DATASET (OF ARBITRARY RANK) =======================
 
 // ------------------------------------------- template --------------------------------------------
@@ -1025,8 +1259,9 @@ inline void File::write(
 template<class T>
 inline std::vector<T> File::read_vector(std::string path, const H5::PredType& HT)
 {
-  // check existence
-  if ( ! m_file.exists(path.c_str()) ) throw std::runtime_error("Path '"+path+"' does not exist");
+  // check existence of path
+  if ( ! exists(path) )
+    throw std::runtime_error("HDF5pp::read: dataset not found ('"+path+"')");
 
   // open dataset
   H5::DataSet dataset = m_file.openDataSet(path.c_str());
@@ -1034,7 +1269,7 @@ inline std::vector<T> File::read_vector(std::string path, const H5::PredType& HT
   // check precision
   #ifndef HDF5PP_NDEBUG_PRECISION
     if ( ! this->correct_presision<T>(dataset) )
-      throw std::runtime_error("Incorrect precision '"+path+"'");
+      throw std::runtime_error("HDF5pp::read: precision inconsistent ('"+path+"')");
   #endif
 
   // allocate output
@@ -1188,6 +1423,115 @@ inline void File::write(std::string path,
 
 #endif
 
+// =============================== OVERWRITE EIGEN COLUMN TO DATASET ===============================
+
+#ifdef HDF5PP_EIGEN
+
+// ------------------------------------------- template --------------------------------------------
+
+template<class T>
+inline void File::overwrite(std::string path,
+  const Eigen::Matrix<T,Eigen::Dynamic,1,Eigen::ColMajor> &input, const H5::PredType& HT)
+{
+  // set shape
+  std::vector<size_t> shape(1, input.size());
+
+  // overwrite to file
+  overwrite(path,input.data(),HT,shape);
+}
+
+// ---------------------------------------------- int ----------------------------------------------
+
+inline void File::overwrite(
+  std::string path, const Eigen::Matrix<int,Eigen::Dynamic,1,Eigen::ColMajor> &input)
+{
+  return overwrite(path,input,H5::PredType::NATIVE_INT);
+}
+
+// -------------------------------------------- size_t ---------------------------------------------
+
+inline void File::overwrite(
+  std::string path, const Eigen::Matrix<size_t,Eigen::Dynamic,1,Eigen::ColMajor> &input)
+{
+  return overwrite(path,input,H5::PredType::NATIVE_HSIZE);
+}
+
+// --------------------------------------------- float ---------------------------------------------
+
+inline void File::overwrite(
+  std::string path, const Eigen::Matrix<float,Eigen::Dynamic,1,Eigen::ColMajor> &input)
+{
+  return overwrite(path,input,H5::PredType::NATIVE_FLOAT);
+}
+
+// -------------------------------------------- double ---------------------------------------------
+
+inline void File::overwrite(
+  std::string path, const Eigen::Matrix<double,Eigen::Dynamic,1,Eigen::ColMajor> &input)
+{
+  return overwrite(path,input,H5::PredType::NATIVE_DOUBLE);
+}
+
+// -------------------------------------------------------------------------------------------------
+
+#endif
+
+// =============================== OVERWRITE EIGEN MATRIX TO DATASET ===============================
+
+#ifdef HDF5PP_EIGEN
+
+// ------------------------------------------- template --------------------------------------------
+
+template<class T>
+inline void File::overwrite(std::string path,
+  const Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &input,
+  const H5::PredType& HT)
+{
+  // set shape
+  std::vector<size_t> shape(2);
+  shape[0] = input.rows();
+  shape[1] = input.cols();
+
+  // overwrite to file
+  overwrite(path,input.data(),HT,shape);
+}
+
+// ---------------------------------------------- int ----------------------------------------------
+
+inline void File::overwrite(std::string path,
+  const Eigen::Matrix<int,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &input)
+{
+  return overwrite(path,input,H5::PredType::NATIVE_INT);
+}
+
+// -------------------------------------------- size_t ---------------------------------------------
+
+inline void File::overwrite(std::string path,
+  const Eigen::Matrix<size_t,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &input)
+{
+  return overwrite(path,input,H5::PredType::NATIVE_HSIZE);
+}
+
+// --------------------------------------------- float ---------------------------------------------
+
+inline void File::overwrite(std::string path,
+  const Eigen::Matrix<float,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &input)
+{
+  return overwrite(path,input,H5::PredType::NATIVE_FLOAT);
+}
+
+// -------------------------------------------- double ---------------------------------------------
+
+inline void File::overwrite(std::string path,
+  const Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &input)
+{
+  return overwrite(path,input,H5::PredType::NATIVE_DOUBLE);
+}
+
+// -------------------------------------------------------------------------------------------------
+
+#endif
+
 // ================================= READ TO DATASET EIGEN COLUMN =================================
 
 #ifdef HDF5PP_EIGEN
@@ -1198,8 +1542,9 @@ template<class T>
 inline Eigen::Matrix<T,Eigen::Dynamic,1,Eigen::ColMajor> File::read_eigen_column(std::string path,
   const H5::PredType& HT)
 {
-  // check existence
-  if ( ! m_file.exists(path.c_str()) ) throw std::runtime_error("Path '"+path+"' does not exist");
+  // check existence of path
+  if ( ! exists(path) )
+    throw std::runtime_error("HDF5pp::read: dataset not found ('"+path+"')");
 
   // open dataset
   H5::DataSet dataset = m_file.openDataSet(path.c_str());
@@ -1207,7 +1552,7 @@ inline Eigen::Matrix<T,Eigen::Dynamic,1,Eigen::ColMajor> File::read_eigen_column
   // check precision
   #ifndef HDF5PP_NDEBUG_PRECISION
     if ( ! this->correct_presision<T>(dataset) )
-      throw std::runtime_error("Incorrect precision '"+path+"'");
+      throw std::runtime_error("HDF5pp::read: precision inconsistent ('"+path+"')");
   #endif
 
   // allocate output
@@ -1270,8 +1615,9 @@ template<class T>
 inline Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor>
 File::read_eigen_matrix(std::string path, const H5::PredType& HT)
 {
-  // check existence
-  if ( ! m_file.exists(path.c_str()) ) throw std::runtime_error("Path '"+path+"' does not exist");
+  // check existence of path
+  if ( ! exists(path) )
+    throw std::runtime_error("HDF5pp::read: dataset not found ('"+path+"')");
 
   // open dataset
   H5::DataSet dataset = m_file.openDataSet(path.c_str());
@@ -1279,7 +1625,7 @@ File::read_eigen_matrix(std::string path, const H5::PredType& HT)
   // check precision
   #ifndef HDF5PP_NDEBUG_PRECISION
     if ( ! this->correct_presision<T>(dataset) )
-      throw std::runtime_error("Incorrect precision '"+path+"'");
+      throw std::runtime_error("HDF5pp::read: precision inconsistent ('"+path+"')");
   #endif
 
   // get shape
@@ -1287,7 +1633,7 @@ File::read_eigen_matrix(std::string path, const H5::PredType& HT)
 
   // check rank
   if ( shape.size() != 2 )
-    throw std::runtime_error("Unable to read, incorrect rank ('"+path+"')");
+    throw std::runtime_error("HDF5pp::read: dataset has a rank different than 2 ('"+path+"')");
 
   // allocate output
   Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> data(shape[0], shape[1]);
@@ -1383,6 +1729,50 @@ inline void File::write(std::string path, const cppmat::array<double> &input)
 
 #endif
 
+// ===================== OVERWRITE CPPMAT-ND-ARRAY TO DATASET OF MATCHING RANK =====================
+
+#ifdef HDF5PP_CPPMAT
+
+// ------------------------------------------- template --------------------------------------------
+
+template<class T>
+inline void File::overwrite(std::string path, const cppmat::array<T> &input, const H5::PredType& HT)
+{
+  overwrite(path,input.data(),HT,input.shape());
+}
+
+// ---------------------------------------------- int ----------------------------------------------
+
+inline void File::overwrite(std::string path, const cppmat::array<int> &input)
+{
+  return overwrite(path,input,H5::PredType::NATIVE_INT);
+}
+
+// -------------------------------------------- size_t ---------------------------------------------
+
+inline void File::overwrite(std::string path, const cppmat::array<size_t> &input)
+{
+  return overwrite(path,input,H5::PredType::NATIVE_HSIZE);
+}
+
+// --------------------------------------------- float ---------------------------------------------
+
+inline void File::overwrite(std::string path, const cppmat::array<float> &input)
+{
+  return overwrite(path,input,H5::PredType::NATIVE_FLOAT);
+}
+
+// -------------------------------------------- double ---------------------------------------------
+
+inline void File::overwrite(std::string path, const cppmat::array<double> &input)
+{
+  return overwrite(path,input,H5::PredType::NATIVE_DOUBLE);
+}
+
+// -------------------------------------------------------------------------------------------------
+
+#endif
+
 // ================================= READ TO DATASET CPPMAT MATRIX =================================
 
 #ifdef HDF5PP_CPPMAT
@@ -1392,8 +1782,9 @@ inline void File::write(std::string path, const cppmat::array<double> &input)
 template<class T>
 inline cppmat::array<T> File::read_cppmat_array(std::string path, const H5::PredType& HT)
 {
-  // check existence
-  if ( ! m_file.exists(path.c_str()) ) throw std::runtime_error("Path '"+path+"' does not exist");
+  // check existence of path
+  if ( ! exists(path) )
+    throw std::runtime_error("HDF5pp::read: dataset not found ('"+path+"')");
 
   // open dataset
   H5::DataSet dataset = m_file.openDataSet(path.c_str());
@@ -1401,7 +1792,7 @@ inline cppmat::array<T> File::read_cppmat_array(std::string path, const H5::Pred
   // check precision
   #ifndef HDF5PP_NDEBUG_PRECISION
     if ( ! this->correct_presision<T>(dataset) )
-      throw std::runtime_error("Incorrect precision '"+path+"'");
+      throw std::runtime_error("HDF5pp::read: precision inconsistent ('"+path+"')");
   #endif
 
   // allocate output

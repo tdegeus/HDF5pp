@@ -56,6 +56,10 @@ Main functions:
 
   Write data (scalar, array, matrix, ...). Can be overloaded with many different types, see :ref:`overloaded_types`.
 
+* ``void File::overwrite("/path/to/data",...)``
+
+  Overwrite data (scalar, array, matrix, ...) of an existing datasets. Can be overloaded with many different types, see :ref:`overloaded_types`. Note that the type and shape must match the existing dataset.
+
 * ``Type File::read<Type>("/path/to/data")``
 
   Read data (scalar, array, matrix, ...). Can be templated with many different types, see :ref:`overloaded_types`.
