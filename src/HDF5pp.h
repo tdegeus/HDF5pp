@@ -39,7 +39,7 @@
 
 #define HDF5PP_WORLD_VERSION 0
 #define HDF5PP_MAJOR_VERSION 1
-#define HDF5PP_MINOR_VERSION 0
+#define HDF5PP_MINOR_VERSION 1
 
 #define HDF5PP_VERSION_AT_LEAST(x,y,z) \
   (HDF5PP_WORLD_VERSION>x || (HDF5PP_WORLD_VERSION>=x && \
@@ -150,10 +150,10 @@ public:
   void write(std::string path, double data);
 
   // write scalar as (part of) an extendable dataset of rank 1
-  void write(std::string path, int    data, size_t index, int    fillval=0  , size_t chunk_size=10);
-  void write(std::string path, size_t data, size_t index, size_t fillval=0  , size_t chunk_size=10);
-  void write(std::string path, float  data, size_t index, float  fillval=0.0, size_t chunk_size=10);
-  void write(std::string path, double data, size_t index, double fillval=0.0, size_t chunk_size=10);
+  void write(std::string path, int    data, size_t index, int    fillval=0  , size_t chunk_size=64000);
+  void write(std::string path, size_t data, size_t index, size_t fillval=0  , size_t chunk_size=64000);
+  void write(std::string path, float  data, size_t index, float  fillval=0.0, size_t chunk_size=64000);
+  void write(std::string path, double data, size_t index, double fillval=0.0, size_t chunk_size=64000);
 
   // write "std::vector" to a dataset of arbitrary shape
   void write(std::string path, const std::vector<int>    &data,const std::vector<size_t> &shape={});
@@ -732,6 +732,9 @@ inline void File::overwrite(std::string path, T input, const H5::PredType& HT)
   // store data
   dataset->write(&input, HT);
 
+  // clean-up
+  delete dataset;
+
   // flush the file if so requested
   if ( m_autoflush ) flush();
 }
@@ -1132,6 +1135,9 @@ inline void File::overwrite(
   // store data
   dataset->write(input, HT);
 
+  // clean-up
+  delete dataset;
+
   // flush the file if so requested
   if ( m_autoflush ) flush();
 }
@@ -1324,11 +1330,17 @@ template<class T>
 inline void File::write(std::string path,
   const Eigen::Matrix<T,Eigen::Dynamic,1,Eigen::ColMajor> &input, const H5::PredType& HT)
 {
+  // temporarily disable parallelization by Eigen (just in case)
+  Eigen::setNbThreads(1);
+
   // set shape
   std::vector<size_t> shape(1, input.size());
 
   // write to file
   write(path,input.data(),HT,shape);
+
+  // reset automatic parallelization by Eigen
+  Eigen::setNbThreads(0);
 }
 
 // ---------------------------------------------- int ----------------------------------------------
@@ -1378,6 +1390,9 @@ inline void File::write(std::string path,
   const Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &input,
   const H5::PredType& HT)
 {
+  // temporarily disable parallelization by Eigen (just in case)
+  Eigen::setNbThreads(1);
+
   // set shape
   std::vector<size_t> shape(2);
   shape[0] = input.rows();
@@ -1385,6 +1400,9 @@ inline void File::write(std::string path,
 
   // write to file
   write(path,input.data(),HT,shape);
+
+  // reset automatic parallelization by Eigen
+  Eigen::setNbThreads(0);
 }
 
 // ---------------------------------------------- int ----------------------------------------------
@@ -1433,11 +1451,17 @@ template<class T>
 inline void File::overwrite(std::string path,
   const Eigen::Matrix<T,Eigen::Dynamic,1,Eigen::ColMajor> &input, const H5::PredType& HT)
 {
+  // temporarily disable parallelization by Eigen (just in case)
+  Eigen::setNbThreads(1);
+
   // set shape
   std::vector<size_t> shape(1, input.size());
 
   // overwrite to file
   overwrite(path,input.data(),HT,shape);
+
+  // reset automatic parallelization by Eigen
+  Eigen::setNbThreads(0);
 }
 
 // ---------------------------------------------- int ----------------------------------------------
@@ -1487,6 +1511,9 @@ inline void File::overwrite(std::string path,
   const Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &input,
   const H5::PredType& HT)
 {
+  // temporarily disable parallelization by Eigen (just in case)
+  Eigen::setNbThreads(1);
+
   // set shape
   std::vector<size_t> shape(2);
   shape[0] = input.rows();
@@ -1494,6 +1521,9 @@ inline void File::overwrite(std::string path,
 
   // overwrite to file
   overwrite(path,input.data(),HT,shape);
+
+  // reset automatic parallelization by Eigen
+  Eigen::setNbThreads(0);
 }
 
 // ---------------------------------------------- int ----------------------------------------------
@@ -1555,11 +1585,17 @@ inline Eigen::Matrix<T,Eigen::Dynamic,1,Eigen::ColMajor> File::read_eigen_column
       throw std::runtime_error("HDF5pp::read: precision inconsistent ('"+path+"')");
   #endif
 
+  // temporarily disable parallelization by Eigen (just in case)
+  Eigen::setNbThreads(1);
+
   // allocate output
   Eigen::Matrix<T,Eigen::Dynamic,1,Eigen::ColMajor> data(this->size(dataset));
 
   // read data
   dataset.read(data.data(), HT);
+
+  // reset automatic parallelization by Eigen
+  Eigen::setNbThreads(0);
 
   // return output
   return data;
@@ -1635,11 +1671,17 @@ File::read_eigen_matrix(std::string path, const H5::PredType& HT)
   if ( shape.size() != 2 )
     throw std::runtime_error("HDF5pp::read: dataset has a rank different than 2 ('"+path+"')");
 
+  // temporarily disable parallelization by Eigen (just in case)
+  Eigen::setNbThreads(1);
+
   // allocate output
   Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> data(shape[0], shape[1]);
 
   // read data
   dataset.read(data.data(), HT);
+
+  // reset automatic parallelization by Eigen
+  Eigen::setNbThreads(0);
 
   // return output
   return data;
