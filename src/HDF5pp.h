@@ -39,7 +39,7 @@
 
 #define HDF5PP_WORLD_VERSION 0
 #define HDF5PP_MAJOR_VERSION 1
-#define HDF5PP_MINOR_VERSION 1
+#define HDF5PP_MINOR_VERSION 2
 
 #define HDF5PP_VERSION_AT_LEAST(x,y,z) \
   (HDF5PP_WORLD_VERSION>x || (HDF5PP_WORLD_VERSION>=x && \
@@ -71,10 +71,13 @@ public:
 
   File() = default;
 
-  File(const std::string &name, const std::string &mode="w", bool autoflush=true);
+  File(const std::string &fname, const std::string &mode="w", bool autoflush=true);
 
   // support functions
   // -----------------
+
+  // return the filename
+  std::string fname() const;
 
   // flush all buffers associated with a file to disk
   // NB if 'autoflush==true' you don't need to call this function, all 'write' functions call it
@@ -359,6 +362,13 @@ inline File::File(const std::string &name, const std::string &mode_, bool autofl
 }
 
 // ======================================= SUPPORT FUNCTIONS =======================================
+
+// ---------------------------------------- return filename ----------------------------------------
+
+inline std::string File::fname() const
+{
+  return m_fname;
+}
 
 // ------------------------------------------ flush file -------------------------------------------
 

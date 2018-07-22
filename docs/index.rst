@@ -79,6 +79,10 @@ This header-only module provides a very simple interface to store data to a HDF5
 
   In addition to the header-only library this module provides some :ref:`command-line tools <tools>`.
 
+.. note::
+
+  It might be interesting to look at the header-only library [cpppath](https://github.com/tdegeus/cpppath) to handle the paths of the HDF5 datasets.
+
 Contents
 ========
 
