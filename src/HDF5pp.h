@@ -35,11 +35,27 @@
 #include <cppmat/cppmat.h>
 #endif
 
+// optionally enable plug-in xtensor and load the library
+#ifdef XTENSOR_VERSION_MAJOR
+#define HDF5PP_XTENSOR
+#endif
+
+#ifdef HDF5PP_XTENSOR
+#include <xtensor/xarray.hpp>
+#include <xtensor/xarray.hpp>
+#include <xtensor/xtensor.hpp>
+#include <xtensor/xfixed.hpp>
+#include <xtensor/xadapt.hpp>
+#include <xtensor/xeval.hpp>
+#include <xtensor/xexpression.hpp>
+#include <xtensor/xio.hpp>
+#endif
+
 // -------------------------------------- version information --------------------------------------
 
 #define HDF5PP_WORLD_VERSION 0
 #define HDF5PP_MAJOR_VERSION 1
-#define HDF5PP_MINOR_VERSION 2
+#define HDF5PP_MINOR_VERSION 3
 
 #define HDF5PP_VERSION_AT_LEAST(x,y,z) \
   (HDF5PP_WORLD_VERSION>x || (HDF5PP_WORLD_VERSION>=x && \
@@ -54,6 +70,10 @@
 // ---------------------------- contain everything in the namespace H5p ----------------------------
 
 namespace H5p {
+
+// ======================================= SUPPORT FUNCTIONS =======================================
+
+template<typename T> inline H5::PredType getType();
 
 // ================================== CLASS DEFINTION (OVERVIEW) ===================================
 
@@ -112,7 +132,7 @@ public:
   std::vector<size_t> shape(const H5::DataSpace &dataspace);
 
   // (advanced) check if an opened dataset has the exact precision of the template type
-  template<class T>
+  template<typename T>
   bool correct_presision(const H5::DataSet &dataset);
 
   // read from file
@@ -121,23 +141,23 @@ public:
   // read as specific data-type, e.g. double, Eigen<double,...>, cppmat::array<double>, ...
   // NB double, int, etc. -> data can contain only exactly one entry
   //    std::string       -> data can contain only a string
-  template<class T>
+  template<typename T>
   T read(std::string path);
 
   // read array component as specific scalar data-type, e.g. double, int, ...
-  template<class T>
+  template<typename T>
   T read(std::string path, size_t index);
 
   // (advanced) read scalar of arbitrary type from a dataset containing exactly one entry
-  template<class T>
+  template<typename T>
   T read_scalar(std::string path, const H5::PredType& HT);
 
   // (advanced) read scalar of arbitrary type from a dataset (scalar, or of rank 1)
-  template<class T>
+  template<typename T>
   T read(std::string path, const H5::PredType& HT, size_t index);
 
   // (advanced) read "std::vector" of arbitrary type from a dataset of arbitrary rank
-  template<class T>
+  template<typename T>
   std::vector<T> read_vector(std::string path, const H5::PredType& HT);
 
   // write to file
@@ -165,21 +185,21 @@ public:
   void write(std::string path, const std::vector<double> &data,const std::vector<size_t> &shape={});
 
   // (advanced) write scalar of arbitrary type to a dataset containing exactly one entry
-  template<class T>
+  template<typename T>
   void write(std::string path, T data, const H5::PredType& HT);
 
   // (advanced) write scalar of arbitrary type as (part of) an extendable dataset of rank 1
-  template<class T>
+  template<typename T>
   void write(std::string path, T data, const H5::PredType& HT, size_t index, T fill_val,
     size_t chunk_size);
 
   // (advanced) write array or any type and of arbitrary shape or rank
-  template<class T>
+  template<typename T>
   void write(std::string path, const T *input, const H5::PredType& HT,
     const std::vector<size_t> &shape);
 
   // (advanced) write std::vector of arbitrary type to a dataset of arbitrary rank
-  template<class T>
+  template<typename T>
   void write(std::string path, const std::vector<T> &data, const H5::PredType& HT,
     const std::vector<size_t> &shape);
 
@@ -199,16 +219,16 @@ public:
   void overwrite(std::string path, const std::vector<double> &data,const std::vector<size_t> &shape={});
 
   // (advanced) overwrite scalar of arbitrary type to a dataset containing exactly one entry
-  template<class T>
+  template<typename T>
   void overwrite(std::string path, T data, const H5::PredType& HT);
 
   // (advanced) overwrite array or any type and of arbitrary shape or rank
-  template<class T>
+  template<typename T>
   void overwrite(std::string path, const T *input, const H5::PredType& HT,
     const std::vector<size_t> &shape);
 
   // (advanced) overwrite std::vector of arbitrary type to a dataset of arbitrary rank
-  template<class T>
+  template<typename T>
   void overwrite(std::string path, const std::vector<T> &data, const H5::PredType& HT,
     const std::vector<size_t> &shape);
 
@@ -237,13 +257,13 @@ public:
     const Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &data);
 
   // (advanced) write column of arbitrary type to dataset of rank 1
-  template<class T>
+  template<typename T>
   void write(std::string path,
     const Eigen::Matrix<T,Eigen::Dynamic,1,Eigen::ColMajor> &data,
     const H5::PredType& HT);
 
   // (advanced) write matrix of arbitrary type to dataset of rank 2
-  template<class T>
+  template<typename T>
   void write(std::string path,
     const Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &data,
     const H5::PredType& HT);
@@ -268,24 +288,24 @@ public:
     const Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &data);
 
   // (advanced) overwrite column of arbitrary type to dataset of rank 1
-  template<class T>
+  template<typename T>
   void overwrite(std::string path,
     const Eigen::Matrix<T,Eigen::Dynamic,1,Eigen::ColMajor> &data,
     const H5::PredType& HT);
 
   // (advanced) overwrite matrix of arbitrary type to dataset of rank 2
-  template<class T>
+  template<typename T>
   void overwrite(std::string path,
     const Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &data,
     const H5::PredType& HT);
 
   // (advanced) read data of arbitrary type to Eigen column
-  template<class T>
+  template<typename T>
   Eigen::Matrix<T,Eigen::Dynamic,1,Eigen::ColMajor> read_eigen_column(std::string path,
     const H5::PredType& HT);
 
   // (advanced) read data of arbitrary type to Eigen matrix
-  template<class T>
+  template<typename T>
   Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> read_eigen_matrix(std::string path,
     const H5::PredType& HT);
 
@@ -303,7 +323,7 @@ public:
   void write(std::string path, const cppmat::array<double> &data);
 
   // (advanced) write nd-array of arbitrary type to dataset of matching rank
-  template<class T>
+  template<typename T>
   void write(std::string path, const cppmat::array<T> &data, const H5::PredType& HT);
 
   // overwrite nd-array to dataset of matching rank
@@ -313,15 +333,46 @@ public:
   void overwrite(std::string path, const cppmat::array<double> &data);
 
   // (advanced) overwrite nd-array of arbitrary type to dataset of matching rank
-  template<class T>
+  template<typename T>
   void overwrite(std::string path, const cppmat::array<T> &data, const H5::PredType& HT);
 
   // (advanced) read data of arbitrary type to cppmat::array
-  template<class T>
+  template<typename T>
   cppmat::array<T> read_cppmat_array(std::string path, const H5::PredType& HT);
 
   #endif
+
+  // plugin: xtensor <TAKEN FROM https://github.com/QuantStack/xtensor-io>
+  // the feature from this library will be moved there and to HighFive,
+  // this is just a temporary fix
+  // ---------------------------------------------------------------------
+
+  #ifdef HDF5PP_XTENSOR
+
+  // write nd-array to dataset of matching rank
+  template<class E> void write(std::string path, const xt::xexpression<E> &data);
+
+  // overwrite nd-array to dataset of matching rank
+  template<class E> void overwrite(std::string path, const xt::xexpression<E> &data);
+
+  // read "xarray" of arbitrary type
+  template<class T> auto xread(const std::string& path);
+
+  // read "xtensor" of arbitrary type
+  template<class T, size_t N> auto xread(const std::string& path);
+
+  // (advanced) generic read
+  template<class T> T xread_impl(const std::string& path, const H5::PredType& HT);
+
+  #endif
 };
+
+// ======================================= SUPPPORT FUNCTION =======================================
+
+template<> inline H5::PredType getType<int   >() { return H5::PredType::NATIVE_INT;    }
+template<> inline H5::PredType getType<size_t>() { return H5::PredType::NATIVE_HSIZE;  }
+template<> inline H5::PredType getType<float >() { return H5::PredType::NATIVE_FLOAT;  }
+template<> inline H5::PredType getType<double>() { return H5::PredType::NATIVE_DOUBLE; }
 
 // ========================================= CONSTRUCTORS ==========================================
 
@@ -664,7 +715,7 @@ inline bool File::correct_presision<double>(const H5::DataSet &dataset)
 
 // ------------------------------------------- template --------------------------------------------
 
-template<class T>
+template<typename T>
 inline void File::write(std::string path, T input, const H5::PredType& HT)
 {
   // check existence of path
@@ -720,7 +771,7 @@ inline void File::write(std::string path, double input)
 
 // ------------------------------------------- template --------------------------------------------
 
-template<class T>
+template<typename T>
 inline void File::overwrite(std::string path, T input, const H5::PredType& HT)
 {
   // new dataset: write using normal function
@@ -781,7 +832,7 @@ inline void File::overwrite(std::string path, double input)
 
 // ------------------------------------------- template --------------------------------------------
 
-template<class T>
+template<typename T>
 inline T File::read_scalar(std::string path, const H5::PredType& HT)
 {
   // check existence of path
@@ -846,7 +897,7 @@ inline double File::read<double>(std::string path)
 
 // ------------------------------------------- template --------------------------------------------
 
-template<class T>
+template<typename T>
 inline void File::write(std::string path, T input, const H5::PredType& HT,
   size_t index, T fill_val, size_t chunk_size
 )
@@ -992,7 +1043,7 @@ inline void File::write(
 
 // ------------------------------------------- template --------------------------------------------
 
-template<class T>
+template<typename T>
 inline T File::read(std::string path, const H5::PredType& HT, size_t index)
 {
   // check existence of path
@@ -1081,7 +1132,7 @@ inline double File::read<double>(std::string path, size_t index)
 
 // ====================== TEMPLATE TO WRITE ARRAY OF ARBITRARY SHAPE OR RANK =======================
 
-template<class T>
+template<typename T>
 inline void File::write(
   std::string path, const T *input, const H5::PredType& HT, const std::vector<size_t> &shape
 )
@@ -1121,7 +1172,7 @@ inline void File::write(
 
 // ==================== TEMPLATE TO OVERWRITE ARRAY OF ARBITRARY SHAPE OR RANK =====================
 
-template<class T>
+template<typename T>
 inline void File::overwrite(
   std::string path, const T *input, const H5::PredType& HT, const std::vector<size_t> &shape
 )
@@ -1156,7 +1207,7 @@ inline void File::overwrite(
 
 // ------------------------------------------- template --------------------------------------------
 
-template<class T>
+template<typename T>
 inline void File::write(std::string path, const std::vector<T> &input, const H5::PredType& HT,
   const std::vector<size_t> &shape)
 {
@@ -1214,7 +1265,7 @@ inline void File::write(
 
 // ------------------------------------------- template --------------------------------------------
 
-template<class T>
+template<typename T>
 inline void File::overwrite(std::string path, const std::vector<T> &input, const H5::PredType& HT,
   const std::vector<size_t> &shape)
 {
@@ -1272,7 +1323,7 @@ inline void File::overwrite(
 
 // ------------------------------------------- template --------------------------------------------
 
-template<class T>
+template<typename T>
 inline std::vector<T> File::read_vector(std::string path, const H5::PredType& HT)
 {
   // check existence of path
@@ -1336,7 +1387,7 @@ inline std::vector<double> File::read<std::vector<double>>(std::string path)
 
 // ------------------------------------------- template --------------------------------------------
 
-template<class T>
+template<typename T>
 inline void File::write(std::string path,
   const Eigen::Matrix<T,Eigen::Dynamic,1,Eigen::ColMajor> &input, const H5::PredType& HT)
 {
@@ -1395,7 +1446,7 @@ inline void File::write(
 
 // ------------------------------------------- template --------------------------------------------
 
-template<class T>
+template<typename T>
 inline void File::write(std::string path,
   const Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &input,
   const H5::PredType& HT)
@@ -1457,7 +1508,7 @@ inline void File::write(std::string path,
 
 // ------------------------------------------- template --------------------------------------------
 
-template<class T>
+template<typename T>
 inline void File::overwrite(std::string path,
   const Eigen::Matrix<T,Eigen::Dynamic,1,Eigen::ColMajor> &input, const H5::PredType& HT)
 {
@@ -1516,7 +1567,7 @@ inline void File::overwrite(
 
 // ------------------------------------------- template --------------------------------------------
 
-template<class T>
+template<typename T>
 inline void File::overwrite(std::string path,
   const Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> &input,
   const H5::PredType& HT)
@@ -1578,7 +1629,7 @@ inline void File::overwrite(std::string path,
 
 // ------------------------------------------- template --------------------------------------------
 
-template<class T>
+template<typename T>
 inline Eigen::Matrix<T,Eigen::Dynamic,1,Eigen::ColMajor> File::read_eigen_column(std::string path,
   const H5::PredType& HT)
 {
@@ -1657,7 +1708,7 @@ File::read<Eigen::Matrix<double,Eigen::Dynamic,1,Eigen::ColMajor>>(std::string p
 
 // ------------------------------------------- template --------------------------------------------
 
-template<class T>
+template<typename T>
 inline Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor>
 File::read_eigen_matrix(std::string path, const H5::PredType& HT)
 {
@@ -1743,7 +1794,7 @@ File::read<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor>>(
 
 // ------------------------------------------- template --------------------------------------------
 
-template<class T>
+template<typename T>
 inline void File::write(std::string path, const cppmat::array<T> &input, const H5::PredType& HT)
 {
   write(path,input.data(),HT,input.shape());
@@ -1787,7 +1838,7 @@ inline void File::write(std::string path, const cppmat::array<double> &input)
 
 // ------------------------------------------- template --------------------------------------------
 
-template<class T>
+template<typename T>
 inline void File::overwrite(std::string path, const cppmat::array<T> &input, const H5::PredType& HT)
 {
   overwrite(path,input.data(),HT,input.shape());
@@ -1831,7 +1882,7 @@ inline void File::overwrite(std::string path, const cppmat::array<double> &input
 
 // ------------------------------------------- template --------------------------------------------
 
-template<class T>
+template<typename T>
 inline cppmat::array<T> File::read_cppmat_array(std::string path, const H5::PredType& HT)
 {
   // check existence of path
@@ -1887,6 +1938,92 @@ template<>
 inline cppmat::array<double> File::read<cppmat::array<double>>(std::string path)
 {
   return read_cppmat_array<double>(path,H5::PredType::NATIVE_DOUBLE);
+}
+
+// -------------------------------------------------------------------------------------------------
+
+#endif
+
+
+
+
+
+
+
+
+
+// ========================================= WRITE XTENSOR =========================================
+
+#ifdef HDF5PP_XTENSOR
+
+template<class E>
+inline void File::write(std::string path, const xt::xexpression<E> &data)
+{
+  auto&& d_data = xt::eval(data.derived_cast());
+
+  std::vector<size_t> shape(d_data.shape().cbegin(), d_data.shape().cend());
+
+  write(path, d_data.begin(), getType<typename E::value_type>(), shape);
+}
+
+#endif
+
+// ======================================= OVERWRITE XTENSOR =======================================
+
+#ifdef HDF5PP_XTENSOR
+
+template<class E>
+inline void File::overwrite(std::string path, const xt::xexpression<E> &data)
+{
+  auto&& d_data = xt::eval(data.derived_cast());
+
+  std::vector<size_t> shape(d_data.shape().cbegin(), d_data.shape().cend());
+
+  overwrite(path, d_data.begin(), getType<typename E::value_type>(), shape);
+}
+
+#endif
+
+// ========================================= READ XTENSOR ==========================================
+
+#ifdef HDF5PP_XTENSOR
+
+// -------------------------------------------------------------------------------------------------
+
+template<class T>
+inline auto File::xread(const std::string& path)
+{
+  return xread_impl<xt::xarray<T>>(path, getType<T>());
+}
+
+// -------------------------------------------------------------------------------------------------
+
+template<class T, size_t N>
+inline auto File::xread(const std::string& path)
+{
+  return xread_impl<xt::xtensor<T,N>>(path, getType<T>());
+}
+
+// -------------------------------------------------------------------------------------------------
+
+template <class T>
+inline T File::xread_impl(const std::string& path, const H5::PredType& HT)
+{
+  // check existence of path
+  if ( ! exists(path) )
+    throw std::runtime_error("HDF5pp::read: dataset not found ('"+path+"')");
+
+  // open dataset
+  H5::DataSet dataset = m_file.openDataSet(path.c_str());
+
+  // allocate output
+  T data = T::from_shape(this->shape(dataset));
+
+  // read data
+  dataset.read(data.begin(), HT);
+
+  // return output
+  return data;
 }
 
 // -------------------------------------------------------------------------------------------------
