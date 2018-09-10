@@ -6,13 +6,13 @@
 
 Examples:
 
-  * Perform an action if the file ("data.hdf5") does not contain the field "/completed"
+  * Perform an action if the file ("data.hdf5") does not contain the field "completed"
 
-      if [ `HDF5pp_find data.hdf5 --not --iname "/completed"` ]; then ... fi
+      if [ `HDF5pp_find data.hdf5 --not --iname "completed"` ]; then ... fi
 
     If the action is to remove the file, the shorthand
 
-      HDF5pp_find data.hdf5 --not --iname "/completed" --remove
+      HDF5pp_find data.hdf5 --not --iname "completed" --remove
 
     is also available.
 
@@ -130,7 +130,9 @@ for fname in args['<source>']:
 
   except:
 
-    print('Error reading "{0:s}"'.format(fname))
+    if args['--verbose']: print('Error reading "{0:s}"'.format(fname))
+
+    continue
 
   # filter datasets
   # ---------------
