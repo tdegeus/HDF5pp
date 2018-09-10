@@ -172,8 +172,8 @@ if args['--dry-run']:
     dest_datasets = [HDF5pp.join(root,path[1:]) for path in source_datasets]
 
     # - check
-    if HDF5pp.exists(dest, dest_datasets):
-      error('Dataset "{0:s}:{1:s}" exists'.format(args['<destination>'], HDF5pp.exists(dest, dest_datasets)))
+    if HDF5pp.exists_any(dest, dest_datasets):
+      error('One of the datasets in "{0:s}" exists:\n  {1:s}'.format(args['<destination>'], '\n  '.join(dest_datasets)))
 
     # - close HDF5-files
     source.close()
@@ -203,8 +203,8 @@ source_datasets = list(HDF5pp.getdatasets(source))
 dest_datasets = [os.path.join(root,path[1:]) for path in source_datasets]
 
 # check
-if HDF5pp.exists(dest, dest_datasets):
-  error('Dataset "{0:s}:{1:s}" exists'.format(args['<destination>'], HDF5pp.exists(dest, dest_datasets)))
+if HDF5pp.exists_any(dest, dest_datasets):
+  error('One of the datasets in "{0:s}" exists:\n  {1:s}'.format(args['<destination>'], '\n  '.join(dest_datasets)))
 
 # merge
 HDF5pp.copydatasets(source, dest, source_datasets, dest_datasets)

@@ -1944,14 +1944,6 @@ inline cppmat::array<double> File::read<cppmat::array<double>>(std::string path)
 
 #endif
 
-
-
-
-
-
-
-
-
 // ========================================= WRITE XTENSOR =========================================
 
 #ifdef HDF5PP_XTENSOR

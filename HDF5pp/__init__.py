@@ -91,18 +91,45 @@ successfully opened.
 
 # ==================================================================================================
 
-def exists(data, datasets):
+def exists(data, path):
   r'''
-Return the first path that exists in the HDF5-archive.
+Check if a path exists in the HDF5-archive.
   '''
 
-  if type(datasets) == str: datasets = [datasets]
-
-  for path in datasets:
-    if path in data:
-      return path
+  if path in data:
+    return True
 
   return False
+
+# ==================================================================================================
+
+def exists_any(data, paths):
+  r'''
+Check if any of the input paths exists in the HDF5-archive.
+  '''
+
+  if type(paths) == str: paths = [paths]
+
+  for path in paths:
+    if exists(data, path):
+      return True
+
+  return False
+
+# ==================================================================================================
+
+def exists_all(data, paths):
+  r'''
+Check if all of the input paths exists in the HDF5-archive.
+  '''
+
+  if type(paths) == str: paths = [paths]
+
+  for path in paths:
+    if not exists(data, path):
+      return False
+
+  return True
 
 # ==================================================================================================
 
