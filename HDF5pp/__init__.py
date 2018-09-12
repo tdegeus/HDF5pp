@@ -26,18 +26,44 @@ Join path components.
 
 def getdatasets(data, root='/'):
   r'''
-Traverse all datasets across all groups in HDF5 file. Usage:
+Iterator to transverse all datasets across all groups in HDF5 file. Usage:
 
-*   for path in HDF5pp.getdatasets(data): ...
-*   paths = set (HDF5pp.getdatasets(data))
-*   paths = list(HDF5pp.getdatasets(data))
+.. code-block:: python
 
-See: `this answer <https://stackoverflow.com/a/50720736/2646505>`_.
+  data = h5py.File('...', 'r')
+
+  # loop over all paths
+  for path in HDF5pp.getdatasets(data):
+    print(path)
+
+  # get a set of all datasets
+  paths = set(HDF5pp.getdatasets(data))
+
+  # get a list of all datasets
+  paths = list(HDF5pp.getdatasets(data))
+
+  data.close()
+
+Read more in `this answer <https://stackoverflow.com/a/50720736/2646505>`_.
+
+:arguments:
+
+  **data** (``<h5py.File>``)
+    A HDF5-archive.
+
+:options:
+
+  **root** ([``'/'``] | ``<str>``)
+    Start a certain point along the path-tree.
+
+:returns:
+
+  Iterator.
   '''
 
   # ---------------------------------------------
 
-  def iterator(g, prefix=''):
+  def iterator(g, prefix):
 
     for key in g.keys():
 
@@ -46,7 +72,7 @@ See: `this answer <https://stackoverflow.com/a/50720736/2646505>`_.
       path = join(prefix, key)
 
       if isinstance(item, h5py.Dataset):
-        yield (path, item)
+        yield path
 
       elif isinstance(item, h5py.Group):
         yield from iterator(item, path)
@@ -59,7 +85,244 @@ See: `this answer <https://stackoverflow.com/a/50720736/2646505>`_.
 
   else:
 
-    for (path, dset) in iterator(data[root], root):
+    for path in iterator(data[root], root):
+      yield path
+
+# ==================================================================================================
+
+def getpaths(data, root='/', max_depth=None, fold=None):
+  r'''
+Iterator to transverse all datasets across all groups in HDF5 file. Whereby one can choose to fold
+(not transverse deeper than):
+
+- Groups deeper than a certain ``max_depth``.
+- A (list of) specific group(s).
+
+:arguments:
+
+  **data** (``<h5py.File>``)
+    A HDF5-archive.
+
+:options:
+
+  **root** ([``'/'``] | ``<str>``)
+    Start a certain point along the path-tree.
+
+  **max_depth** (``<int>``)
+    Set a maximum depth beyond which groups are folded.
+
+  **fold** (``<list>``)
+    Specify groups that are folded.
+
+:returns:
+
+  Iterator.
+
+:example:
+
+  Consider this file:
+
+  .. code-block:: bash
+
+    /path/to/first/a
+    /path/to/first/b
+    /data/c
+    /data/d
+    /e
+
+  Calling:
+
+  .. code-block:: python
+
+    data = h5py.File('...', 'r')
+
+    for path in HDF5pp.getpaths(data, max_depth=2, fold='/data'):
+      print(path)
+
+  Will print:
+
+  .. code-block:: bash
+
+    /path/to/...
+    /data/...
+    /e
+
+  The ``...`` indicate it concerns a folded group, not a dataset. The first group was folded because
+  of the maximum depth, and the second because if was specifically requested to be folded.
+  '''
+
+  if max_depth and fold:
+    return _getpaths_fold_maxdepth(data, root, fold, max_depth)
+
+  if max_depth:
+    return _getpaths_maxdepth(data, root, max_depth)
+
+  if fold:
+    return _getpaths_fold(data, root, fold)
+
+  return _getpaths(data, root)
+
+# ==================================================================================================
+
+def _getpaths(data, root):
+  r'''
+Specialization for ``getpaths``
+  '''
+
+  # ---------------------------------------------
+
+  def iterator(g, prefix):
+
+    for key in g.keys():
+
+      item = g[key]
+
+      path = join(prefix, key)
+
+      if isinstance(item, h5py.Dataset):
+        yield path
+
+      elif isinstance(item, h5py.Group):
+        yield from iterator(item, path)
+
+  # ---------------------------------------------
+
+  if isinstance(data[root], h5py.Dataset):
+
+    yield root
+
+  else:
+
+    for path in iterator(data[root], root):
+      yield path
+
+# ==================================================================================================
+
+def _getpaths_maxdepth(data, root, max_depth):
+  r'''
+Specialization for ``getpaths`` such that:
+
+- Groups deeper than a certain maximum depth are folded.
+  '''
+
+  # ---------------------------------------------
+
+  def iterator(g, prefix, max_depth):
+
+    for key in g.keys():
+
+      item = g[key]
+
+      path = join(prefix, key)
+
+      if isinstance(item, h5py.Dataset):
+        yield path
+
+      elif len(path.split('/'))-1 >= max_depth:
+        yield path + '/...'
+
+      elif isinstance(item, h5py.Group):
+        yield from iterator(item, path, max_depth)
+
+  # ---------------------------------------------
+
+  if type(max_depth) == str: max_depth = int(max_depth)
+
+  if isinstance(data[root], h5py.Dataset):
+
+    yield root
+
+  else:
+
+    for path in iterator(data[root], root, max_depth):
+      yield path
+
+# ==================================================================================================
+
+def _getpaths_fold(data, root, fold):
+  r'''
+Specialization for ``getpaths`` such that:
+
+- Certain groups are folded.
+  '''
+
+  # ---------------------------------------------
+
+  def iterator(g, prefix, fold):
+
+    for key in g.keys():
+
+      item = g[key]
+
+      path = join(prefix, key)
+
+      if isinstance(item, h5py.Dataset):
+        yield path
+
+      elif path in fold:
+        yield path + '/...'
+
+      elif isinstance(item, h5py.Group):
+        yield from iterator(item, path, fold)
+
+  # ---------------------------------------------
+
+  if type(fold) == str: fold = [fold]
+
+  if isinstance(data[root], h5py.Dataset):
+
+    yield root
+
+  else:
+
+    for path in iterator(data[root], root, fold):
+      yield path
+
+# ==================================================================================================
+
+def _getpaths_fold_maxdepth(data, root, fold, max_depth):
+  r'''
+Specialization for ``getpaths`` such that:
+
+- Certain groups are folded.
+- Groups deeper than a certain maximum depth are folded.
+  '''
+
+  # ---------------------------------------------
+
+  def iterator(g, prefix, fold, max_depth):
+
+    for key in g.keys():
+
+      item = g[key]
+
+      path = join(prefix, key)
+
+      if isinstance(item, h5py.Dataset):
+        yield path
+
+      elif len(path.split('/'))-1 >= max_depth:
+        yield path + '/...'
+
+      elif path in fold:
+        yield path + '/...'
+
+      elif isinstance(item, h5py.Group):
+        yield from iterator(item, path, fold, max_depth)
+
+  # ---------------------------------------------
+
+  if type(max_depth) == str: max_depth = int(max_depth)
+
+  if type(fold) == str: fold = [fold]
+
+  if isinstance(data[root], h5py.Dataset):
+
+    yield root
+
+  else:
+
+    for path in iterator(data[root], root, fold, max_depth):
       yield path
 
 # ==================================================================================================

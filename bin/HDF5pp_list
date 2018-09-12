@@ -94,43 +94,19 @@ isfile(args['<source>'])
 # get paths
 # ---------
 
-# initialize list with datasets
-paths = []
-
-# read datasets
+# open file
 try:
-
-  # - read file
   source = h5py.File(args['<source>'], 'r')
-  # - get datasets
-  paths = list(HDF5pp.getdatasets(source))
-  # - close file
-  source.close()
-
 except:
-
   print('Error reading "{0:s}"'.format(args['<source>']))
+  sys.exit(1)
 
-
-# fold
-# ----
-
-# fold based on depth
-if args['--max-depth']:
-  paths = [HDF5pp.abspath('/'.join(path.split('/')[:int(args['--max-depth'])+1])) for path in paths]
-
-# remove duplicates
-paths = list(set(paths))
-
-# manually fold
-if args['--fold']:
-  for fold in args['--fold']:
-    paths = [re.sub(r'('+HDF5pp.abspath(fold)+r')(.*)', r'\1', path) for path in paths]
-
-# remove duplicates
-paths = list(set(paths))
+# get iterator to data-sets
+paths = HDF5pp.getpaths(source, max_depth=args['--max-depth'], fold=args['--fold'])
 
 # print
-# -----
+for path in paths:
+  print(path)
 
-print('\n'.join(sorted(paths)))
+# close file
+source.close()
