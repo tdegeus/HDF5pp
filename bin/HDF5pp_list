@@ -11,6 +11,7 @@ Arguments:
 Options:
   -f, --fold=ARG        Fold paths.
   -d, --max-depth=ARG   Maximum depth to display.
+  -r, --root=ARG        Start a certain point in the path-tree. [default: /]
   -h, --help            Show help.
       --version         Show version.
 
@@ -102,7 +103,7 @@ except:
   sys.exit(1)
 
 # get iterator to data-sets
-paths = HDF5pp.getpaths(source, max_depth=args['--max-depth'], fold=args['--fold'])
+paths = HDF5pp.getpaths(source, root=args['--root'], max_depth=args['--max-depth'], fold=args['--fold'])
 
 # print
 for path in paths:
