@@ -418,7 +418,9 @@ can be renamed by specifying a list of 'dest_datasets' (whose entries should cor
   groups = sorted(groups, key=lambda group: (group.count('/'), group))
 
   # create groups
-  for group in groups: dest.create_group(group)
+  for group in groups:
+    if not exists(dest, group):
+      dest.create_group(group)
 
   # copy datasets
   for source_path, dest_path in zip(source_datasets, dest_datasets):
