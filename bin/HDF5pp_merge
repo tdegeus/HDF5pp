@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 '''HDF5pp_merge
   Merge an entire HDF5-file into another HDF5-file: copy all datasets from <source> to some root
-  in <destination>. The root is based on the path of <source>, as it is specified:
+  in <destination>. The root is based on the file-path of <source> (as it is specified, no
+  conversion to for example an absolute path is done). According to the following rules the root
+  becomes:
 
-  * without extension (default)
-  * only directory name (--dirname)
-  * as specified (--ext)
-  * apply some regex substitution (--find ... --replace ...)
+  * File-path, without extension (default)
+  * File-path as specified (--noconvert)
+  * Only the directory name of the file-path (--dirname)
+  * File-path with some regex substitution (--find ... --replace ...)
+  * Some custom root (--root)
 
 Usage:
   HDF5pp_merge [options] <source> <destination>
@@ -16,12 +19,12 @@ Arguments:
   <destination>       Destination HDF5-file (appended).
 
 Options:
-      --ext           Include extension of <source> in root.
+      --noconvert     Include extension of <source> in root.
       --dirname       Use only directory name of <source> in root.
   -f, --find=ARG      Regex search  to apply to <source>.
   -r, --replace=ARG   Regex replace to apply to <source>.
   -p, --root=ARG      Manually set root.
-       --rm           Remove <source> after successful copy.
+      --rm            Remove <source> after successful copy.
   -d, --dry-run       Dry run.
       --verbose       Verbose operations.
   -h, --help          Show help.
@@ -141,9 +144,9 @@ elif not args['--find'] and not args['--replace'] and args['--root']:
 # default: path to folder
 elif not args['--find'] and not args['--replace'] and not args['--root']:
 
-  if       args['--dirname']: root = HDF5pp.abspath(os.path.split   (args['<source>'])[0])
-  elif not args['--ext'    ]: root = HDF5pp.abspath(os.path.splitext(args['<source>'])[0])
-  else                      : root = HDF5pp.abspath(                 args['<source>'])[0]
+  if       args['--dirname'  ]: root = HDF5pp.abspath(os.path.split   (args['<source>'])[0])
+  elif not args['--noconvert']: root = HDF5pp.abspath(os.path.splitext(args['<source>'])[0])
+  else                        : root = HDF5pp.abspath(                 args['<source>'])[0]
 
 # catch illegal cases
 else:
@@ -202,12 +205,11 @@ source_datasets = list(HDF5pp.getdatasets(source))
 # convert to datasets to store
 dest_datasets = [os.path.join(root,path[1:]) for path in source_datasets]
 
-# check
-if HDF5pp.exists_any(dest, dest_datasets):
-  error('One of the datasets in "{0:s}" exists:\n  {1:s}'.format(args['<destination>'], '\n  '.join(dest_datasets)))
-
 # merge
-HDF5pp.copydatasets(source, dest, source_datasets, dest_datasets)
+try:
+  HDF5pp.copydatasets(source, dest, source_datasets, dest_datasets)
+except Exception as e:
+  print(e)
 
 # finish
 # ------

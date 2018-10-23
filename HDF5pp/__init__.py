@@ -409,6 +409,11 @@ can be renamed by specifying a list of 'dest_datasets' (whose entries should cor
   # copy the source datasets
   if not dest_datasets: dest_datasets = [path for path in source_datasets]
 
+  # check
+  for dest_path in dest_datasets:
+    if exists(dest, dest_path):
+      raise IOError('Dateset "{0:s}" already exists'.format(dest_path))
+
   # get the group-names from 'source_datasets'
   # - read and filter duplicates
   groups = list(set([os.path.split(path)[0] for path in dest_datasets]))

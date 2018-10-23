@@ -1,8 +1,7 @@
 
 import re
 
-from setuptools                 import setup
-from setuptools.command.install import install
+from setuptools import setup
 
 # --------------------------------------------------------------------------------------------------
 
@@ -26,6 +25,13 @@ setup(
   long_description  = '',
   license           = 'MIT',
   packages          = ['HDF5pp'],
+  scripts           = ['bin/HDF5pp_check', 'bin/HDF5pp_list', 'bin/HDF5pp_repair', 'bin/HDF5pp_find', 'bin/HDF5pp_merge', 'bin/HDF5pp_select'],
+  install_requires  = ['docopt>=0.6.2', 'h5py>=2.8.0'],
+      options={
+        'build_scripts': {
+            'executable': '/usr/bin/env python3',
+        },
+    },
 )
 
 # --------------------------------------------------------------------------------------------------
