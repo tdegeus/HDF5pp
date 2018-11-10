@@ -43,53 +43,13 @@ HDF5pp
 
   This library is free to use under the `MIT license <https://github.com/tdegeus/HDF5pp/blob/master/LICENSE>`_. Any additions are very much appreciated, in terms of suggested functionality, code, documentation, testimonials, word of mouth advertisement, .... Bug reports or feature requests can be filed on `GitHub <http://github.com/tdegeus/HDF5pp>`_. As always, the code comes with no guarantee. None of the developers can be held responsible for possible mistakes.
 
-Teaser
-======
-
-This header-only module provides a very simple interface to store data to a HDF5-file. Using this library writing an HDF5 file becomes as simple as:
-
-.. code-block:: cpp
-
-  #include <iostream>
-  #include <vector>
-  #include <HDF5pp.h>
-
-  int main()
-  {
-    std::vector<double> data = ...;
-
-    H5p::File file = H5p::File("example.hdf5","w");
-
-    file.write("/path/to/data", data);
-
-    return 0;
-  }
-
-.. note::
-
-  Compilation of this example for example with
-
-  .. code-block:: bash
-
-    h5c++ -std=c++14 `pkg-config --cflags HDF5pp` example.cpp
-
-  But probably most easily using CMake. See :ref:`compile` for more details.
-
-.. note::
-
-  In addition to the header-only library this module provides some :ref:`command-line tools <tools>`.
-
-.. note::
-
-  It might be interesting to look at the header-only library [cpppath](https://github.com/tdegeus/cpppath) to handle the paths of the HDF5 datasets.
-
 Contents
 ========
 
 .. toctree::
    :maxdepth: 1
 
-   usage.rst
-   compile.rst
+   HDF5pp.rst
+   LowFive.rst
    tools.rst
    develop.rst

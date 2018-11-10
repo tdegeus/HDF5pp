@@ -13,10 +13,13 @@ include(GNUInstallDirs)
 project(HDF5pp)
 
 # file that contains the version information
-set(parse_version src/${PROJECT_NAME}.h)
+set(parse_version include/${PROJECT_NAME}.h)
 
 # header files
-set(headers src/${PROJECT_NAME}.h)
+set(headers
+  include/${PROJECT_NAME}.h
+  include/LowFive.h
+)
 
 # binaries
 set(binaries

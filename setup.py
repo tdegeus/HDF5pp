@@ -5,7 +5,7 @@ from setuptools import setup
 
 # --------------------------------------------------------------------------------------------------
 
-header = open('src/HDF5pp.h','r').read()
+header = open('include/HDF5pp.h','r').read()
 world  = re.split(r'(.*)(\#define HDF5PP_WORLD_VERSION\ )([0-9]+)(.*)',header)[3]
 major  = re.split(r'(.*)(\#define HDF5PP_MAJOR_VERSION\ )([0-9]+)(.*)',header)[3]
 minor  = re.split(r'(.*)(\#define HDF5PP_MINOR_VERSION\ )([0-9]+)(.*)',header)[3]
