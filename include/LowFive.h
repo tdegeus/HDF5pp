@@ -161,7 +161,16 @@ inline HighFive::DataSet dump(HighFive::File &file, const std::string &path, siz
 {
   createGroup(file, path);
 
-  size_t N = idx + 1;
+  if ( exist(file, path) )
+  {
+    HighFive::DataSet dataset = file.getDataSet(path);
+
+    dataset.select({idx}).write(data);
+
+    return dataset;
+  }
+
+  size_t N = idx+1;
 
   HighFive::DataSpace dataspace = HighFive::DataSpace({N}, {HighFive::DataSpace::UNLIMITED});
 
