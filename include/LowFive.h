@@ -98,8 +98,6 @@ inline size_t size(HighFive::File &file, const std::string &path)
 
   auto dims = dataspace.getDimensions();
 
-  if ( dims.size() == 0 ) return 1;
-
   size_t size = 1;
 
   for ( size_t i = 0 ; i < dims.size() ; ++i ) size *= dims[i];
@@ -119,8 +117,6 @@ inline std::vector<size_t> shape(HighFive::File &file, const std::string &path)
   auto dataspace = dataset.getSpace();
 
   auto dims = dataspace.getDimensions();
-
-  if ( dims.size() == 0 ) return std::vector<size_t>{1};
 
   std::vector<size_t> shape(dims.size());
 
@@ -336,7 +332,7 @@ inline HighFive::DataSet overwrite(HighFive::File &file, const std::string &path
 
 // -------------------------------------------------------------------------------------------------
 
-template <class T>
+template<class T>
 inline T cast_impl(HighFive::File &file, const std::string& path)
 {
   HighFive::DataSet dataset = file.getDataSet(path);
@@ -354,7 +350,7 @@ inline T cast_impl(HighFive::File &file, const std::string& path)
 
 // -------------------------------------------------------------------------------------------------
 
-template <class T>
+template<class T>
 auto cast(HighFive::File &file, const std::string& path)
 {
  return cast_impl<xt::xarray<T>>(file, path);
@@ -362,7 +358,7 @@ auto cast(HighFive::File &file, const std::string& path)
 
 // -------------------------------------------------------------------------------------------------
 
-template <class T, std::size_t dim>
+template<class T, std::size_t dim>
 auto cast(HighFive::File &file, const std::string& path)
 {
  return cast_impl<xt::xtensor<T, dim>>(file, path);
