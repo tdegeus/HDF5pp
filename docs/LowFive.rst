@@ -8,9 +8,8 @@ Teaser
 
 .. code-block:: cpp
 
-  #include <xtensor/xtensor.hpp>
-
-  #include "LowFive.h"
+  #include <xtensor/xtensor.hpp> // before LowFive to enable functions
+  #include <LowFive.h>
 
   int main()
   {
