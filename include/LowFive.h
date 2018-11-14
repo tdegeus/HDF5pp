@@ -32,7 +32,7 @@ namespace LowFive {
 
 // -------------------------------------------------------------------------------------------------
 
-inline bool exist(HighFive::File &file, const std::string &path)
+inline bool exist(const HighFive::File &file, const std::string &path)
 {
   // find first "/"
   size_t idx = path.find("/");
@@ -87,7 +87,7 @@ inline void createGroup(HighFive::File &file, const std::string &path)
 
 // -------------------------------------------------------------------------------------------------
 
-inline size_t size(HighFive::File &file, const std::string &path)
+inline size_t size(const HighFive::File &file, const std::string &path)
 {
   if ( ! exist(file,path) )
     throw std::runtime_error("LowFive::shape: Field does not exist ('"+path+"')");
@@ -107,7 +107,7 @@ inline size_t size(HighFive::File &file, const std::string &path)
 
 // -------------------------------------------------------------------------------------------------
 
-inline std::vector<size_t> shape(HighFive::File &file, const std::string &path)
+inline std::vector<size_t> shape(const HighFive::File &file, const std::string &path)
 {
   if ( ! exist(file,path) )
     throw std::runtime_error("LowFive::shape: Field does not exist ('"+path+"')");
@@ -208,7 +208,7 @@ inline HighFive::DataSet overwrite(HighFive::File &file, const std::string &path
 // -------------------------------------------------------------------------------------------------
 
 template <class T>
-inline T cast(HighFive::File &file, const std::string& path)
+inline T cast(const HighFive::File &file, const std::string& path)
 {
   HighFive::DataSet dataset = file.getDataSet(path);
 
@@ -229,7 +229,7 @@ inline T cast(HighFive::File &file, const std::string& path)
 // -------------------------------------------------------------------------------------------------
 
 template <class T>
-inline T cast(HighFive::File &file, const std::string& path, size_t idx)
+inline T cast(const HighFive::File &file, const std::string& path, size_t idx)
 {
   HighFive::DataSet dataset = file.getDataSet(path);
 
@@ -266,7 +266,7 @@ inline HighFive::DataSet dump(HighFive::File &file, const std::string &path, con
 
 // -------------------------------------------------------------------------------------------------
 
-inline std::string cast(HighFive::File &file, const std::string& path)
+inline std::string cast(const HighFive::File &file, const std::string& path)
 {
   HighFive::DataSet dataset = file.getDataSet(path);
 
@@ -333,7 +333,7 @@ inline HighFive::DataSet overwrite(HighFive::File &file, const std::string &path
 // -------------------------------------------------------------------------------------------------
 
 template<class T>
-inline T cast_impl(HighFive::File &file, const std::string& path)
+inline T cast_impl(const HighFive::File &file, const std::string& path)
 {
   HighFive::DataSet dataset = file.getDataSet(path);
 
@@ -351,7 +351,7 @@ inline T cast_impl(HighFive::File &file, const std::string& path)
 // -------------------------------------------------------------------------------------------------
 
 template<class T>
-auto cast(HighFive::File &file, const std::string& path)
+auto cast(const HighFive::File &file, const std::string& path)
 {
  return cast_impl<xt::xarray<T>>(file, path);
 }
@@ -359,7 +359,7 @@ auto cast(HighFive::File &file, const std::string& path)
 // -------------------------------------------------------------------------------------------------
 
 template<class T, std::size_t dim>
-auto cast(HighFive::File &file, const std::string& path)
+auto cast(const HighFive::File &file, const std::string& path)
 {
  return cast_impl<xt::xtensor<T, dim>>(file, path);
 }
