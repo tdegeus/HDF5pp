@@ -12,6 +12,7 @@ Options:
   -f, --fold=ARG        Fold paths.
   -d, --max-depth=ARG   Maximum depth to display.
   -r, --root=ARG        Start a certain point in the path-tree. [default: /]
+      --info            Print information: shape, dtype.
   -h, --help            Show help.
       --version         Show version.
 
@@ -106,8 +107,46 @@ except:
 paths = HDF5pp.getpaths(source, root=args['--root'], max_depth=args['--max-depth'], fold=args['--fold'])
 
 # print
-for path in paths:
-  print(path)
+# -----
+
+# print without info
+if not args['--info']:
+  for path in paths:
+    print(path)
+
+# print with info
+if args['--info']:
+
+  out = {
+    'path'  : [],
+    'size'  : [],
+    'shape' : [],
+    'dtype' : [],
+  }
+
+  for path in paths:
+    if path in source:
+      data = source[path]
+      out['path' ] += [path]
+      out['size' ] += ['size = ' + str(data.size)]
+      out['shape'] += ['shape = ' + str(data.shape)]
+      out['dtype'] += ['dtype = ' + str(data.dtype)]
+    else:
+      out['path' ] += [path]
+      out['size' ] += ['-']
+      out['shape'] += ['-']
+      out['dtype'] += ['-']
+
+  width = {}
+  for key in out:
+    width[key] = max([len(i) for i in out[key]])
+
+  fmt = '{0:%ds} ; {1:%ds} ; {2:%ds} ; {3:%ds}' % (width['path'], width['size'], width['shape'], width['dtype'])
+
+  for i in range(len(out['path'])):
+    print(fmt.format(out['path'][i], out['size'][i], out['shape'][i], out['dtype'][i]))
 
 # close file
+# ----------
+
 source.close()
