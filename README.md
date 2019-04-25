@@ -1,3 +1,11 @@
+# WARNING: Deprecated
+
+This library is deprecated in favour of:
+
+*   [xtensor-io](https://github.com/QuantStack/xtensor-io)
+*   [HighFive](https://github.com/BlueBrain/HighFive)
+*   [GooseHDF5](https://github.com/tdegeus/GooseHDF5)
+
 # HDF5
 
 A simple HDF5 wrapper. 
